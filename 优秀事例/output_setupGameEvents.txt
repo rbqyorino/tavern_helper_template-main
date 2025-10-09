@@ -1,0 +1,312 @@
+888:   function setupGameEvents(messageId, gameData) {
+889:     const container = $(`.galgame-container-${messageId}`);
+890:     if (!container.length) return;
+891: 
+892:     container.on('click', function (e) {
+893:       e.stopPropagation();
+894:       const state = gameStates[messageId];
+895: 
+896:       if (!state || state.processing) return;
+897: 
+898:       if (state.showingChoices) return;
+899: 
+900:       processNextScene(messageId);
+901:     });
+902: 
+903:     $(`#history-btn-${messageId}`).on('click', function (e) {
+904:       e.stopPropagation();
+905:       showHistoryModal(messageId);
+906:     });
+907: 
+908:     $(`#history-close-${messageId}`).on('click', function (e) {
+909:       e.stopPropagation();
+910:       hideHistoryModal(messageId);
+911:     });
+912: 
+913:     setTimeout(() => {
+914:       processNextScene(messageId);
+915:     }, 100);
+916:   }
+917: 
+918:   function processNextScene(messageId) {
+919:     const state = gameStates[messageId];
+920:     if (!state) return;
+921: 
+922:     if (window.GALGAME_FINISHING_STREAM || window.GALGAME_EDITING_MESSAGE) {
+923:       return;
+924:     }
+925: 
+926:     state.processing = true;
+927: 
+928:     const scene = state.data.scenes[state.currentIndex];
+929:     if (!scene) {
+930:       $(`#text-${messageId}`).text('对话已结束');
+931:       $(`#next-${messageId}`).hide();
+932: 
+933:       const replayButton = $(
+934:         `<button style="position:absolute; bottom:5px; left:15px; padding:5px 15px; background-color:#ff69b4; color:white; border:none; border-radius:5px; cursor:pointer;"><i class="fas fa-redo-alt"></i> 重新播放</button>`,
+935:       );
+936:       replayButton.on('click', function (e) {
+937:         e.stopPropagation();
+938:         state.currentIndex = 0;
+939:         $(`#text-${messageId}`).text('');
+940:         $(this).remove();
+941: 
+942:         hideAllCharacters(messageId);
+943: 
+944:         state.characters = {
+945:           L: { name: null, sprite: null },
+946:           C: { name: null, sprite: null },
+947:           R: { name: null, sprite: null },
+948:         };
+949: 
+950:         hideCG(messageId);
+951: 
+952:         $(`#bg-${messageId}`).css({
+953:           'background-image': 'none',
+954:           'background-color': '#000',
+955:         });
+956: 
+957:         $(`#name-${messageId}`).hide();
+958: 
+959:         $(`#overlay-${messageId}`).css({
+960:           opacity: '0',
+961:           transition: 'none',
+962:         });
+963: 
+964:         $(`#next-${messageId}`).show();
+965: 
+966:         processNextScene(messageId);
+967:       });
+968: 
+969:       $(`.galgame-dialogue-${messageId}`).append(replayButton);
+970: 
+971:       state.processing = false;
+972:       return;
+973:     }
+974: 
+975:     try {
+976:       if (scene.type === 'dialogue') {
+977:         const nameElement = $(`#name-${messageId}`);
+978:         if (scene.character === '旁白') {
+979:           nameElement.hide();
+980:           // 对于旁白对话，不应该亮起任何角色，但也不要额外暗化
+981:         } else {
+982:           nameElement.text(scene.character).show();
+983:           
+984:           // 设置角色立绘
+985:           if (scene.position && scene.sprite) {
+986:             showCharacter(messageId, scene.character, scene.position, scene.sprite);
+987:           } else {
+988:             // 如果只有角色名没有立绘和位置，尝试找到该角色并点亮
+989:             for (const p in state.characters) {
+990:               if (state.characters[p].name === scene.character) {
+991:                 const pos = p === 'L' ? 'left' : p === 'C' ? 'center' : 'right';
+992:                 const element = $(`#char-${pos}-${messageId}`);
+993:                 element.removeClass('dimmed').addClass('active');
+994:                 
+995:                 // 使其他角色变暗
+996:                 for (const otherP in state.characters) {
+997:                   if (otherP !== p && state.characters[otherP].name) {
+998:                     const otherPos = otherP === 'L' ? 'left' : otherP === 'C' ? 'center' : 'right';
+999:                     $(`#char-${otherPos}-${messageId}`).addClass('dimmed');
+1000:                   }
+1001:                 }
+1002:                 break;
+1003:               }
+1004:             }
+1005:           }
+1006:         }
+1007: 
+1008:         typewriterEffect(messageId, scene.text, () => {
+1009:           if (scene.inlineAction) {
+1010:             executeAction(messageId, scene.inlineAction.target, scene.inlineAction.name, scene.inlineAction.args);
+1011:           }
+1012: 
+1013:           state.currentIndex++;
+1014:           state.processing = false;
+1015:           $(`#next-${messageId}`).show();
+1016:         });
+1017:       } else if (scene.type === 'command') {
+1018:         processCommand(messageId, scene.command, scene.args).then(() => {
+1019:           state.currentIndex++;
+1020:           state.processing = false;
+1021: 
+1022:           if (scene.command !== 'choice' && scene.command !== 'wait') {
+1023:             setTimeout(() => {
+1024:               processNextScene(messageId);
+1025:             }, 50);
+1026:           }
+1027:         });
+1028:       } else {
+1029:         state.currentIndex++;
+1030:         state.processing = false;
+1031:         processNextScene(messageId);
+1032:       }
+1033:     } catch (error) {
+1034:       state.currentIndex++;
+1035:       state.processing = false;
+1036:     }
+1037:   }
+1038: 
+1039:   async function processCommand(messageId, command, args) {
+1040:     const state = gameStates[messageId];
+1041:     if (!state) return;
+1042: 
+1043:     try {
+1044:       switch (command) {
+1045:         case 'bg':
+1046:           await setBackground(messageId, args[0], args[1], args[2] ? parseFloat(args[2]) : 0.5);
+1047:           break;
+1048: 
+1049:         case 'show':
+1050:           showCharacter(messageId, args[0], args[1].toUpperCase(), args[2]);
+1051:           break;
+1052: 
+1053:         case 'hide':
+1054:           hideCharacter(messageId, args[0]);
+1055:           break;
+1056: 
+1057:         case 'hide_all':
+1058:           hideAllCharacters(messageId);
+1059:           break;
+1060: 
+1061:         case 'cg':
+1062:           showCG(messageId, args[0]);
+1063:           break;
+1064: 
+1065:         case 'hide_cg':
+1066:           hideCG(messageId);
+1067:           break;
+1068: 
+1069:         case 'action':
+1070:           executeAction(messageId, args[0], args[1], args.slice(2));
+1071:           break;
+1072: 
+1073:         case 'wait':
+1074:           const waitTime = parseFloat(args[0]) * 1000 || 500;
+1075:           $(`#next-${messageId}`).hide();
+1076:           await new Promise(resolve => setTimeout(resolve, waitTime));
+1077:           $(`#next-${messageId}`).show();
+1078:           break;
+1079: 
+1080:         case 'choice':
+1081:           state.showingChoices = true;
+1082:           $(`#next-${messageId}`).hide();
+1083: 
+1084:           const choicesContainer = $(`#choices-${messageId}`);
+1085:           choicesContainer.empty();
+1086: 
+1087:           const choiceOverlay = $(
+1088:             `<div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:4;"></div>`,
+1089:           );
+1090:           $(`.galgame-container-${messageId}`).append(choiceOverlay);
+1091: 
+1092:           args.forEach((choice, index) => {
+1093:             let text = choice.trim();
+1094:             const tagIndex = text.indexOf('>');
+1095:             if (tagIndex !== -1) {
+1096:               text = text.substring(0, tagIndex).trim();
+1097:             }
+1098: 
+1099:             const choiceElement = $(`<div class="galgame-choice-${messageId}">${text}</div>`);
+1100:             choiceElement.on('click', function (e) {
+1101:               e.stopPropagation();
+1102: 
+1103:               choicesContainer.empty();
+1104:               choiceOverlay.remove();
+1105:               state.showingChoices = false;
+1106: 
+1107:               if (typeof triggerSlash === 'function') {
+1108:                 triggerSlash(`/setinput ${text}`);
+1109:               }
+1110: 
+1111:               state.currentIndex++;
+1112:               processNextScene(messageId);
+1113:             });
+1114: 
+1115:             choicesContainer.append(choiceElement);
+1116:           });
+1117:           break;
+1118: 
+1119:         case 'effect':
+1120:           const effectType = args[0];
+1121:           const effectParams = args.slice(1);
+1122: 
+1123:           if (effectType === 'screen_flash') {
+1124:             const overlay = $(`#overlay-${messageId}`);
+1125:             overlay.css({
+1126:               opacity: '0.8',
+1127:               background: 'white',
+1128:               transition: 'opacity 0.1s',
+1129:             });
+1130: 
+1131:             await new Promise(resolve => setTimeout(resolve, 100));
+1132: 
+1133:             overlay.css({
+1134:               opacity: '0',
+1135:               transition: 'opacity 0.1s',
+1136:             });
+1137: 
+1138:             await new Promise(resolve => setTimeout(resolve, 100));
+1139:           } else if (effectType === 'fade_to_black') {
+1140:             const overlay = $(`#overlay-${messageId}`);
+1141:             const duration = effectParams[0] ? parseFloat(effectParams[0]) : 0.5;
+1142:             overlay.css({
+1143:               opacity: '0',
+1144:               background: 'black',
+1145:               transition: `opacity ${duration}s`,
+1146:             });
+1147: 
+1148:             await new Promise(resolve => setTimeout(resolve, 10));
+1149: 
+1150:             overlay.css('opacity', '1');
+1151: 
+1152:             await new Promise(resolve => setTimeout(resolve, duration * 1000));
+1153:           } else if (effectType === 'fade_from_black') {
+1154:             const overlay = $(`#overlay-${messageId}`);
+1155:             const duration = effectParams[0] ? parseFloat(effectParams[0]) : 0.5;
+1156:             overlay.css({
+1157:               opacity: '1',
+1158:               background: 'black',
+1159:               transition: `opacity ${duration}s`,
+1160:             });
+1161: 
+1162:             await new Promise(resolve => setTimeout(resolve, 10));
+1163: 
+1164:             overlay.css('opacity', '0');
+1165: 
+1166:             await new Promise(resolve => setTimeout(resolve, duration * 1000));
+1167:           }
+1168:           break;
+1169:       }
+1170:     } catch (error) {
+1171:       log(`处理命令出错: ${command}`, error);
+1172:     }
+1173:   }
+1174: 
+1175:   function showCharacter(messageId, name, position, spriteUrl) {
+1176:     const state = gameStates[messageId];
+1177:     if (!state) return;
+1178: 
+1179:     if (!['L', 'C', 'R'].includes(position)) {
+1180:       return;
+1181:     }
+1182: 
+1183:     try {
+1184:       const pos = position === 'L' ? 'left' : position === 'C' ? 'center' : 'right';
+1185:       const charElement = $(`#char-${pos}-${messageId}`);
+1186: 
+1187:       if (!charElement.length) {
+1188:         return;
+1189:       }
+1190: 
+1191:       // 确保当前角色不被暗化
+1192:       charElement.removeClass('dimmed');
+1193: 
+1194:       for (const p in state.characters) {
+1195:         if (p !== position && state.characters[p].name === name) {
+1196:           const otherPos = p === 'L' ? 'left' : p === 'C' ? 'center' : 'right';
+1197:           $(`#char-${otherPos}-${messageId}`).removeClass('active');
+1198:           state.characters[p].name = null;
+1199:           state.characters[p].sprite = null;

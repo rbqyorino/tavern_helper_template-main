@@ -1,0 +1,3468 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夏日口袋 - 视觉小说</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+        }
+
+        .vn-game-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            background-color: #000;
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 0;
+        }
+
+        .vn-game-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 4/2.5;
+            background-image: url('https://files.catbox.moe/u74884.png');
+            background-position: center;
+            background-size: cover;
+            overflow: hidden;
+            box-shadow: none;
+            transition: background-image 0.5s ease;
+        }
+
+        /* 角色立绘区 */
+        .character-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            pointer-events: none; /* 确保点击可以穿透立绘区 */
+        }
+
+        .character {
+            position: absolute;
+            bottom: 0;
+            height: 90%;
+            opacity: 0;
+            transition: opacity 0.5s ease, left 0.7s ease, right 0.7s ease;
+            pointer-events: none; /* 确保点击可以穿透立绘 */
+            z-index: 5;
+            transform-origin: bottom center;
+        }
+
+        .character.active {
+            opacity: 1;
+        }
+
+        .character.left {
+            left: 10%;
+            z-index: 4;
+            transform: scale(0.95);
+            transition: opacity 0.5s ease, left 0.7s ease;
+        }
+
+        .character.center {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) scale(0.95);
+            z-index: 6;
+            transition: opacity 0.5s ease;
+        }
+
+        .character.right {
+            right: 10%;
+            z-index: 4;
+            transform: scale(0.95);
+            transition: opacity 0.5s ease, right 0.7s ease;
+        }
+
+        /* 添加新类，用于立绘更新过渡 */
+        .character.updating {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* 新增类，用于实现淡入淡出过渡效果 */
+        .character.fade-in {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            animation: charFadeIn 0.5s forwards;
+        }
+
+        .character.fade-out {
+            transition: opacity 0.5s ease;
+            animation: charFadeOut 0.5s forwards;
+        }
+
+        @keyframes charFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes charFadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .character-placeholder {
+            position: absolute;
+            bottom: 0;
+            height: 90%;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 对话框样式 - 修改位置至底部，增加高度 */
+        .vn-dialog-box {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 1000px;
+            background-image: url('https://files.catbox.moe/guh1mb.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            padding: 30px 40px;
+            color: white;
+            z-index: 10;
+            height: 220px; /* 增加对话框高度 */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* 仅PC全屏时放大对话框 */
+        @media (min-width: 769px) {
+            .landscape-fullscreen .vn-dialog-box {
+                height: 260px; /* 全屏模式下增加更多高度 */
+                width: 85%;
+                padding: 36px 48px;
+            }
+
+            .landscape-fullscreen .vn-character-name {
+                font-size: 24px;
+                margin-bottom: 7px;
+            }
+
+            .landscape-fullscreen .name-separator {
+                width: 420px;
+                height: 144px;
+            }
+
+            .landscape-fullscreen .vn-dialog-text-container {
+                height: 160px; /* 增加文本容器高度 */
+            }
+
+            .landscape-fullscreen .vn-dialog-text {
+                font-size: 22px;
+                line-height: 1.7;
+            }
+
+            .landscape-fullscreen .click-indicator {
+                width: 48px;
+                height: 48px;
+                bottom: 24px;
+                right: 36px;
+            }
+        }
+
+        .vn-character-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #BBE9FF;
+            font-size: 20px; /* 减小字体大小 */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* 名称分隔线 - 左对齐，PC端和移动端都放大 */
+        .name-separator {
+            width: 350px;
+            height: 120px; /* 放大十倍 */
+            background-image: url('https://files.catbox.moe/u1m6cq.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            margin-bottom: 0px;
+            text-align: left;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* 新增文本容器，用于控制滚动 - 增加高度 */
+        .vn-dialog-text-container {
+            position: relative;
+            height: 130px; /* 增加容器高度以显示更多文本 */
+            overflow-y: auto;
+            margin-right: 30px; /* 为点击指示器留出空间 */
+            transition: all 0.3s ease-in-out;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        }
+
+        .vn-dialog-text-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .vn-dialog-text-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .vn-dialog-text-container::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+        }
+
+        .vn-dialog-text {
+            line-height: 1.6;
+            font-size: 18px; /* 调大字体 */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            transition: all 0.3s ease-in-out;
+            padding-bottom: 10px; /* 文本底部添加一些内边距 */
+        }
+
+        /* 点击提示 - 替换为图标并保留闪烁效果 */
+        .click-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            width: 40px;
+            height: 40px;
+            background-image: url('https://files.catbox.moe/f8j7jc.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            animation: blink 1.5s infinite;
+            transition: all 0.3s ease-in-out;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* 选项菜单 */
+        .vn-choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 20;
+        }
+
+        .vn-choice {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+        }
+
+        .vn-choice:hover {
+            background-color: rgba(73, 156, 228, 0.7);
+            transform: scale(1.03);
+        }
+
+        /* 游戏控制菜单 - PC端放大，移动端缩小间距 */
+        .vn-game-menu {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px; /* 缩小间距 */
+            z-index: 30;
+        }
+
+        /* 添加文本回看按钮，放大并和自动/设置按钮同一水平线 */
+        .vn-backlog-button {
+            position: absolute;
+            top: 10px; /* 再往上移动一些 */
+            left: 15px;
+            width: 80px; /* 放大文本回看按钮 */
+            height: 80px;
+            background-image: url('https://files.catbox.moe/4ax4nl.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 30;
+        }
+
+        .vn-backlog-button:hover {
+            transform: scale(1.1);
+        }
+
+        /* 修改菜单按钮为图片，PC端放大 */
+        .vn-menu-button {
+            width: 64px; /* PC端大幅放大 */
+            height: 64px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .vn-menu-button:hover {
+            transform: scale(1.1);
+        }
+
+        /* 跳过按钮和快速全屏按钮样式 */
+        #vnSkipButton, #vnQuickFullscreenButton {
+            width: 64px;
+            height: 64px;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        #vnResetButton {
+            background-image: url('https://files.catbox.moe/cnsbkk.png');
+        }
+
+        #vnAutoButton {
+            background-image: url('https://files.catbox.moe/g8oabk.png');
+        }
+
+        #vnAutoButton.active {
+            background-image: url('https://files.catbox.moe/zivmnb.png');
+        }
+
+        #vnSettingsButton {
+            background-image: url('https://files.catbox.moe/6gk07h.png');
+        }
+
+        /* 设置面板样式 */
+        .settings-panel {
+            display: none;
+            position: absolute;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .settings-content {
+            background-image: url('https://files.catbox.moe/nrntih.png');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 40px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90%;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .settings-title {
+            margin-bottom: 30px;
+            text-align: center;
+            padding-left: 25px;
+        }
+
+        .settings-title img {
+            width: 60%;
+            max-width: 220px;
+            filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.7));
+        }
+
+        .settings-option {
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .settings-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .settings-label img {
+            height: 32px;
+            margin-right: 10px;
+            filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.6));
+        }
+
+        .fullscreen-option {
+            display: none;
+            text-align: center;
+        }
+
+        .volume-slider {
+            width: 100%;
+            height: 6px;
+            background: rgba(173, 216, 230, 0.4);
+            outline: none;
+            -webkit-appearance: none;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: rgba(135, 206, 250, 0.9);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: rgba(135, 206, 250, 0.9);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            border: none;
+        }
+
+        /* 全屏按钮 */
+        .fullscreen-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin-top: 5px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .fullscreen-toggle img {
+            height: 50px;
+            filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.6));
+        }
+
+        .fullscreen-toggle:hover {
+            transform: scale(1.05);
+        }
+
+        .settings-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .settings-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+
+        .settings-button img {
+            height: 60px;
+            filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.6));
+        }
+
+        .settings-button:hover {
+            transform: scale(1.05);
+        }
+
+        .close-button {
+            color: white;
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        /* 文本回看功能 - 更改背景 */
+        .backlog-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://files.catbox.moe/vegclz.png');
+            background-size: cover;
+            background-position: center;
+            z-index: 50;
+            display: none;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        /* PC端隐藏滚动条 */
+        @media (min-width: 769px) {
+            .backlog-container {
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE and Edge */
+            }
+
+            .backlog-container::-webkit-scrollbar {
+                display: none; /* Chrome, Safari, Opera */
+            }
+
+            /* PC端全屏样式优化 */
+            .landscape-fullscreen {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                max-width: none !important;
+                z-index: 9999 !important;
+            }
+        }
+
+        .backlog-content {
+            max-width: 800px;
+            margin: 0 auto;
+            color: white;
+            padding-bottom: 80px; /* 为底部的关闭按钮留出空间 */
+        }
+
+        .backlog-entry {
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 20px;
+        }
+
+        .backlog-name {
+            color: #BBE9FF;
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .backlog-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        /* 文本回看关闭按钮改为图片 - 缩小并移至底部 */
+        .backlog-close {
+            position: fixed;
+            bottom: 20px; /* 更靠近底部 */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px; /* 缩小尺寸 */
+            height: 40px;
+            background-image: url('https://files.catbox.moe/gx71j4.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+            text-indent: -9999px;
+            overflow: hidden;
+        }
+
+        .backlog-close:hover {
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        /* 背景过渡效果 */
+        .bg-transition {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 40;
+            transition: opacity 0.5s ease;
+        }
+
+        .bg-transition.active {
+            opacity: 1;
+        }
+
+        /* 加载界面 */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-title {
+            color: white;
+            font-size: 28px;
+            margin-bottom: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .loading-progress {
+            width: 80%;
+            max-width: 400px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background-color: rgba(135, 206, 250, 0.8);
+            transition: width 0.3s ease;
+        }
+
+        .loading-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* 新增 - 保存状态按钮 */
+        .vn-save-button {
+            position: absolute;
+            top: 10px;
+            left: 105px; /* 放在回看按钮旁边 */
+            width: 60px;
+            height: 60px;
+            background-image: url('https://files.catbox.moe/t4azul.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 30;
+        }
+
+        .vn-save-button:hover {
+            transform: scale(1.1);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .vn-game-container {
+                aspect-ratio: 4/4;
+            }
+
+            .vn-dialog-box {
+                bottom: 0;
+                width: 98%;
+                padding: 25px 35px;
+                height: 190px; /* 增加移动端对话框高度 */
+            }
+
+            .vn-character-name {
+                font-size: 18px; /* 适当调整移动端字体大小 */
+                margin-bottom: 3px;
+            }
+
+            .name-separator {
+                height: 70px; /* 适当调整移动端高度 */
+                margin-bottom: 8px;
+                width: 250px; /* 适当调整移动端宽度 */
+            }
+
+            .vn-dialog-text-container {
+                height: 100px; /* 增加移动端文本容器高度 */
+            }
+
+            .vn-dialog-text {
+                font-size: 16px;
+            }
+
+            .click-indicator {
+                width: 35px;
+                height: 35px;
+                bottom: 12px;
+                right: 25px;
+            }
+
+            /* 调整手机端未全屏状态下的按钮大小和间距 */
+            body:not(.fullscreen-active) .vn-game-menu {
+                gap: 2px; /* 减小间距 */
+                right: 2px; /* 靠右 */
+                top: 8px; /* 靠上 */
+            }
+
+            body:not(.fullscreen-active) .vn-menu-button {
+                width: 36px; /* 缩小 */
+                height: 36px;
+            }
+
+            body:not(.fullscreen-active) #vnSkipButton,
+            body:not(.fullscreen-active) #vnQuickFullscreenButton {
+                width: 36px;
+                height: 36px;
+            }
+
+            /* 保持手机端全屏状态下的按钮原样 */
+            body.fullscreen-active .vn-game-menu {
+                gap: 3px;
+                right: 3px;
+                top: 15px;
+            }
+
+            body.fullscreen-active .vn-menu-button,
+            body.fullscreen-active #vnSkipButton,
+            body.fullscreen-active #vnQuickFullscreenButton {
+                width: 42px;
+                height: 42px;
+            }
+
+            .vn-backlog-button {
+                width: 52px; /* 移动端回看按钮放大 */
+                height: 52px;
+                top: 10px; /* 保持对齐 */
+            }
+
+            .vn-save-button {
+                width: 48px;
+                height: 48px;
+                left: 75px; /* 调整移动端位置 */
+                top: 10px;
+            }
+
+            .character.left {
+                left: 5%;
+                transform: translateX(-15px) scale(0.95);
+            }
+
+            .character.right {
+                right: 5%;
+                transform: translateX(15px) scale(0.95);
+            }
+
+            .character.center {
+                transform: translateX(-50%) translateY(30px);
+            }
+
+            /* 移动端回看关闭按钮 */
+            .backlog-close {
+                width: 100px;
+                height: 35px;
+                bottom: 15px;
+            }
+
+            /* 显示全屏选项 */
+            .fullscreen-option {
+                display: block;
+            }
+
+            /* 为移动端调整设置面板 */
+            .settings-content {
+                padding: 20px 15px;
+                width: 85%;
+                max-width: 350px;
+            }
+
+            .settings-title {
+                margin-bottom: 20px;
+                padding-left: 10px;
+            }
+
+            .settings-title img {
+                width: 50%;
+                max-width: 180px;
+            }
+
+            .settings-option {
+                margin-bottom: 18px;
+            }
+
+            .settings-label {
+                margin-bottom: 8px;
+            }
+
+            .settings-label img {
+                height: 28px;
+            }
+
+            .settings-buttons {
+                margin-top: 20px;
+            }
+
+            .settings-button img {
+                height: 50px;
+            }
+
+            .fullscreen-toggle img {
+                height: 42px;
+            }
+        }
+
+        /* 更小屏幕适配 */
+        @media (max-width: 480px) {
+            .vn-game-container {
+                aspect-ratio: 4/5;
+            }
+
+            .vn-dialog-box {
+                bottom: 0;
+                padding: 20px 25px;
+                height: 170px; /* 更小屏幕也增加高度 */
+            }
+
+            .vn-character-name {
+                font-size: 16px;
+                margin-bottom: 2px;
+            }
+
+            .name-separator {
+                height: 60px; /* 更小屏幕适配 */
+                margin-bottom: 6px;
+                width: 200px;
+            }
+
+            .vn-dialog-text-container {
+                height: 80px; /* 更小屏幕文本容器高度 */
+            }
+
+            .vn-dialog-text {
+                font-size: 15px;
+            }
+
+            .click-indicator {
+                width: 30px;
+                height: 30px;
+                bottom: 10px;
+                right: 20px;
+            }
+
+            /* 更小屏幕未全屏状态按钮适配 */
+            body:not(.fullscreen-active) .vn-game-menu {
+                gap: 1px; /* 更小间距 */
+                right: 1px;
+                top: 5px;
+            }
+
+            body:not(.fullscreen-active) .vn-menu-button,
+            body:not(.fullscreen-active) #vnSkipButton,
+            body:not(.fullscreen-active) #vnQuickFullscreenButton {
+                width: 32px; /* 更小屏幕更小按钮 */
+                height: 32px;
+            }
+
+            /* 保持更小屏幕全屏状态下的按钮原样 */
+            body.fullscreen-active .vn-game-menu {
+                gap: 2px;
+                right: 2px;
+                top: 10px;
+            }
+
+            body.fullscreen-active .vn-menu-button,
+            body.fullscreen-active #vnSkipButton,
+            body.fullscreen-active #vnQuickFullscreenButton {
+                width: 38px;
+                height: 38px;
+            }
+
+            .vn-backlog-button {
+                width: 46px; /* 更小屏幕回看按钮放大 */
+                height: 46px;
+                top: 10px; /* 保持与PC端一致 */
+            }
+
+            .vn-save-button {
+                width: 42px;
+                height: 42px;
+                left: 65px; /* 调整小屏幕位置 */
+                top: 10px;
+            }
+
+            /* 更小屏幕回看关闭按钮 */
+            .backlog-close {
+                width: 90px;
+                height: 30px;
+                bottom: 10px;
+            }
+
+            /* 进一步缩小小屏幕下的设置面板 */
+            .settings-content {
+                padding: 15px 12px;
+                width: 80%;
+                max-width: 300px;
+                border-radius: 8px;
+            }
+
+            .settings-title {
+                margin-bottom: 15px;
+                padding-left: 6px;
+            }
+
+            .settings-title img {
+                width: 45%;
+                max-width: 150px;
+            }
+
+            .settings-option {
+                margin-bottom: 15px;
+            }
+
+            .settings-label {
+                margin-bottom: 6px;
+            }
+
+            .settings-label img {
+                height: 24px;
+            }
+
+            .settings-buttons {
+                margin-top: 15px;
+            }
+
+            .settings-button img {
+                height: 42px;
+            }
+
+            .fullscreen-toggle img {
+                height: 36px;
+            }
+
+            .volume-slider {
+                height: 5px;
+            }
+
+            .volume-slider::-webkit-slider-thumb {
+                width: 18px;
+                height: 18px;
+            }
+
+            .volume-slider::-moz-range-thumb {
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        /* 全屏模式适配 */
+        .landscape-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+            max-height: none !important;
+            aspect-ratio: unset !important;
+            z-index: 999 !important;
+            background-size: cover !important;
+            background-position: center !important;
+            transform: none !important;
+        }
+
+        /* 淡入淡出效果 */
+        .fade-in {
+            animation: fadeIn 1s forwards;
+        }
+
+        .fade-out {
+            animation: fadeOut 1s forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* 新增轻微入场特效的CSS */
+        @keyframes subtleFadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: scale(0.95); }
+        }
+
+        .character.subtle-entry {
+            animation: subtleFadeIn 0.5s ease-out forwards;
+        }
+
+        /* 为现有角色添加轻微的位置调整动画，确保缩放比例一致 */
+        @keyframes subtlePositionShift {
+            from { transform: translateX(15px) scale(0.95); }
+            to { transform: scale(0.95); }
+        }
+
+        .character.shift-left {
+            animation: subtlePositionShift 0.4s ease-out forwards;
+        }
+
+        /* 专门为手机端未全屏状态下的立绘设置样式 */
+        @media (max-width: 768px) {
+            body:not(.fullscreen-active) .character.mobile-center {
+                position: absolute !important;
+                left: 50% !important;
+                bottom: 0 !important;
+                transform: translateX(-50%) !important;
+                z-index: 10 !important;
+                height: 85% !important; /* 稍微调整高度确保完整显示 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载界面 -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-title">Summer Pockets</div>
+        <div class="loading-progress">
+            <div class="loading-bar" id="loadingBar"></div>
+        </div>
+        <div class="loading-text" id="loadingText">loading...</div>
+    </div>
+
+    <div class="vn-game-wrapper" style="display: none;" id="gameWrapper">
+        <div class="vn-game-container" id="vnGameContainer">
+            <!-- 角色立绘区 -->
+            <div class="character-container" id="characterContainer">
+                <!-- 角色立绘会通过JS动态添加 -->
+            </div>
+
+            <!-- 对话框 -->
+            <div class="vn-dialog-box" id="vnDialogBox">
+                <div class="vn-character-name" id="vnNameTag"></div>
+                <div class="name-separator" id="nameSeparator"></div>
+                <!-- 新的文本容器结构 -->
+                <div class="vn-dialog-text-container" id="vnDialogTextContainer">
+                    <div class="vn-dialog-text" id="vnDialogText">这是一段示例对话文本，将通过JS动态更改。点击屏幕可以继续对话。</div>
+                </div>
+                <div class="click-indicator" id="clickIndicator"></div>
+            </div>
+
+            <!-- 背景过渡效果 -->
+            <div class="bg-transition" id="bgTransition"></div>
+
+            <!-- 文本回看功能 -->
+            <div class="backlog-container" id="backlogContainer">
+                <div class="backlog-content" id="backlogContent">
+                    <!-- 历史对话会动态添加到这里 -->
+                </div>
+                <div class="backlog-close" onclick="closeBacklog()">关闭回看</div>
+            </div>
+
+            <!-- 选项菜单 -->
+            <div class="vn-choices-container" id="vnChoicesContainer">
+                <!-- 选项会通过JS动态添加 -->
+            </div>
+
+            <!-- 添加文本回看按钮 -->
+            <div class="vn-backlog-button" id="vnBacklogButton" title="文本回看"></div>
+
+            <!-- 添加保存状态按钮 -->
+            <div class="vn-save-button" id="vnSaveButton" title="保存游戏状态"></div>
+
+            <!-- 游戏控制菜单 -->
+            <div class="vn-game-menu">
+                <!-- 跳过和全屏按钮将通过JS添加 -->
+                <div class="vn-menu-button" id="vnResetButton" title="重置游戏"></div>
+                <div class="vn-menu-button" id="vnAutoButton" title="自动播放"></div>
+                <div class="vn-menu-button" id="vnSettingsButton" title="设置"></div>
+            </div>
+
+            <!-- 设置面板 -->
+            <div id="settingsPanel" class="settings-panel">
+                <div class="settings-content">
+                    <span class="close-button" onclick="closeSettingsPanel()">×</span>
+
+                    <div class="settings-title">
+                        <img src="https://files.catbox.moe/0unxfg.png" alt="游戏设置">
+                    </div>
+
+                    <div class="settings-option">
+                        <div class="settings-label">
+                            <img src="https://files.catbox.moe/16kqva.png" alt="背景音乐音量">
+                        </div>
+                        <input type="range" id="bgmVolume" class="volume-slider" min="0" max="100" value="50">
+                    </div>
+
+                    <div class="settings-option">
+                        <div class="settings-label">
+                            <img src="https://files.catbox.moe/jnriro.png" alt="音效音量">
+                        </div>
+                        <input type="range" id="soundVolume" class="volume-slider" min="0" max="100" value="30">
+                    </div>
+
+                    <div class="settings-option fullscreen-option">
+                        <div class="settings-label">
+                            <!-- 没有文字标签，只用图标 -->
+                        </div>
+                        <button id="fullscreenToggle" class="fullscreen-toggle" onclick="toggleFullscreen()">
+                            <img id="fullscreenIcon" src="https://files.catbox.moe/x73w1m.png" alt="全屏模式">
+                        </button>
+                    </div>
+
+                    <div class="settings-buttons">
+                        <button class="settings-button" onclick="saveSettings()">
+                            <img src="https://files.catbox.moe/fjqkez.png" alt="确定">
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音效和背景音乐 -->
+    <audio id="vnClickSound">
+        <source src="https://files.catbox.moe/vxcr33.ogg" type="audio/ogg">
+    </audio>
+    <audio id="vnChoiceSound">
+        <source src="https://files.catbox.moe/xhdrtg.ogg" type="audio/ogg">
+    </audio>
+    <audio id="vnBGM" loop>
+        <source src="" type="audio/ogg" id="bgmSource">
+    </audio>
+    <audio id="vnSFX">
+        <source src="" type="audio/ogg" id="sfxSource">
+    </audio>
+
+    <script>
+        // Catbox文件服务器URL前缀
+        const CATBOX_PREFIX = "https://files.catbox.moe/";
+
+        // 清理URL函数 - 处理含有特殊符号的链接
+        function cleanUrl(url) {
+            if (!url || url.trim() === '') return '';
+
+            // 检查是否包含冒号，如果有，取冒号后面的部分
+            if (url.includes(':')) {
+                url = url.split(':').pop();
+            }
+
+            // 只保留字母、数字和文件扩展名
+            return url.replace(/[^a-zA-Z0-9\.]/g, '');
+        }
+
+        // 添加Catbox前缀的函数
+        function addCatboxPrefix(url, shouldClean = true) {
+            if (!url || url.trim() === '') return '';
+
+            // 如果需要清理URL
+            if (shouldClean) {
+                url = cleanUrl(url);
+            }
+
+            // 如果已经是完整URL，就直接返回
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+
+            // 否则添加Catbox前缀
+            return CATBOX_PREFIX + url;
+        }
+
+        // 创建唯一实例ID - 基于内容和元素特征计算，确保每个视觉小说实例都有唯一ID
+        // 即使HTML代码相同，每个实例也可以拥有独立的状态
+        function generateInstanceID() {
+            // 使用内容特征，脚本位置和其他特性生成一个唯一的ID
+            const timestamp = Date.now();
+            const randomPart = Math.random().toString(36).substring(2, 10);
+            const locationInfo = window.location.pathname + window.location.hash;
+
+            // 获取当前脚本在DOM中的位置信息（如父元素数量、兄弟元素位置等）
+            const scripts = document.getElementsByTagName('script');
+            const thisScript = scripts[scripts.length - 1];
+            const scriptPosition = Array.from(document.scripts).indexOf(thisScript);
+
+            // 使用这些信息创建一个唯一标识符
+            return `vnInstance_${timestamp}_${randomPart}_${scriptPosition}_${locationInfo.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        }
+
+        // 当前视觉小说实例的唯一ID
+        const INSTANCE_ID = generateInstanceID();
+
+        // 游戏状态 - 只在当前楼层有效
+        const gameState = {
+            currentSceneIndex: -1,
+            autoMode: false,
+            skipMode: false,
+            bgmVolume: 0.5,
+            soundVolume: 0.3,
+            isAnimating: false,
+            isFullscreen: false,
+            isBGMPlaying: false,
+            backlogOpen: false,
+            dialogHistory: [], // 存储对话历史
+            bgmFadingOut: false, // 音乐是否正在淡出
+            sfxPlaying: false, // 音效是否正在播放
+            inTransition: false, // 是否正在场景转换中
+            lastLoadedSceneIndex: -1, // 最后预加载的场景索引
+            lastBGMUrl: "", // 最后播放的BGM URL
+            bgmState: "playing", // BGM状态: playing, stopped
+            stateSaved: false // 是否已保存过状态
+        };
+
+        // 全局变量
+        let dialogSpeed = 30; // 文字显示速度 (ms)
+        let autoModeDelay = 2000; // 自动模式延迟 (ms)
+        let dialogInterval;
+
+        // 游戏脚本 - 改为新的数据结构
+        const gameData = {
+            scenes: [
+            {
+                bgm: addCatboxPrefix("$2", true),
+                isMarker: true
+            },
+
+            // 解析传入的脚本内容
+            ...(function() {
+                const scriptContent = `$1`;
+                const scenes = [];
+
+                const matches = scriptContent.match(/【.*?】/g);
+                if (matches) {
+                    matches.forEach(match => {
+                        const parts = match.slice(1, -1).split('|');
+
+                        // 清理并添加前缀
+                        const bgm = parts[0] ? addCatboxPrefix(parts[0]) : '';
+                        const bg = parts[1] ? addCatboxPrefix(parts[1]) : '';
+                        const name = parts[2] || '';
+                        
+                        // 处理立绘部分 - 支持多个立绘
+                        const charSpritePart = parts[3] || '';
+                        let characters = [];
+                        
+                        if (charSpritePart) {
+                            // 检查是否指定了角色退场（以"-"开头）
+                            if (charSpritePart === '-' || charSpritePart === '--') {
+                                // 特殊处理："-"表示清空所有角色
+                                // 这里使用特殊标记来表示清空角色
+                                characters.push({
+                                    sprite: '-',
+                                    position: 'center'
+                                });
+                            }
+                            // 检查是否有多个立绘（使用&分隔）
+                            else if (charSpritePart.includes('&')) {
+                                const charParts = charSpritePart.split('&');
+                                
+                                // 处理每个立绘
+                                charParts.forEach(charPart => {
+                                    // 检查是否有位置信息（使用:分隔）
+                                    let position = 'auto';
+                                    let spriteUrl = charPart;
+                                    
+                                    if (charPart.includes(':')) {
+                                        const positionParts = charPart.split(':');
+                                        position = positionParts[0].toLowerCase(); // left, center, right
+                                        spriteUrl = positionParts[1];
+                                    }
+                                    
+                                    characters.push({
+                                        sprite: addCatboxPrefix(spriteUrl),
+                                        position: position
+                                    });
+                                });
+                            } else {
+                                // 单个立绘的情况
+                                // 检查是否有位置信息
+                                let position = 'auto'; // 默认设为auto，由系统自动分配
+                                let spriteUrl = charSpritePart;
+                                
+                                if (charSpritePart.includes(':')) {
+                                    const positionParts = charSpritePart.split(':');
+                                    position = positionParts[0].toLowerCase();
+                                    spriteUrl = positionParts[1];
+                                }
+                                
+                                characters.push({
+                                    sprite: addCatboxPrefix(spriteUrl),
+                                    position: position
+                                });
+                            }
+                        }
+                        
+                        const text = parts[4] || '';
+
+                        scenes.push({
+                            bgm: bgm,
+                            bg: bg,
+                            characters: characters,
+                            name: name,
+                            text: text
+                        });
+                    });
+                }
+
+                return scenes;
+            })()
+            ],
+            currentSceneIndex: -1
+        };
+
+        // 创建资源管理器，用于动态预加载资源
+        const resourceManager = (function() {
+            // 存储已加载资源的缓存
+            const loadedResources = new Set();
+
+            // 判断资源是否已经加载
+            function isResourceLoaded(url) {
+                return loadedResources.has(url);
+            }
+
+            // 标记资源为已加载
+            function markResourceLoaded(url) {
+                loadedResources.add(url);
+            }
+
+            // 预加载图片资源
+            function preloadImage(url) {
+                return new Promise((resolve, reject) => {
+                    // 如果资源已加载，直接返回
+                    if (isResourceLoaded(url)) {
+                        resolve(url);
+                        return;
+                    }
+
+                    const img = new Image();
+                    img.onload = () => {
+                        markResourceLoaded(url);
+                        resolve(url);
+                    };
+                    img.onerror = () => {
+                        console.error('Failed to load image:', url);
+                        reject(url);
+                    };
+                    img.src = url;
+                });
+            }
+
+            // 预加载音频资源
+            function preloadAudio(url) {
+                return new Promise((resolve, reject) => {
+                    // 如果资源已加载，直接返回
+                    if (isResourceLoaded(url)) {
+                        resolve(url);
+                        return;
+                    }
+
+                    const audio = new Audio();
+                    audio.oncanplaythrough = () => {
+                        markResourceLoaded(url);
+                        resolve(url);
+                        // 移除事件监听器以避免重复触发
+                        audio.oncanplaythrough = null;
+                    };
+                    audio.onerror = () => {
+                        console.error('Failed to load audio:', url);
+                        reject(url);
+                    };
+                    audio.src = url;
+                    audio.load();
+                });
+            }
+
+            // 预加载单个资源（根据类型选择加载方法）
+            function preloadResource(url) {
+                if (!url) return Promise.resolve(); // 如果URL为空，直接返回成功
+
+                if (typeof url !== 'string') {
+                    console.warn('Invalid resource URL:', url);
+                    return Promise.resolve();
+                }
+
+                if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+                    return preloadImage(url);
+                } else if (url.match(/\.(mp3|ogg|wav)$/i)) {
+                    return preloadAudio(url);
+                } else {
+                    console.warn('Unknown resource type:', url);
+                    return Promise.resolve();
+                }
+            }
+
+            // 从场景获取需要预加载的资源
+            function getResourcesFromScene(scene) {
+                const resources = [];
+
+                // 如果是BGM标记，只添加BGM
+                if (scene.isMarker && scene.bgm) {
+                    resources.push(scene.bgm);
+                    return resources;
+                }
+
+                // 添加背景
+                if (scene.bg) {
+                    resources.push(scene.bg);
+                }
+
+                // 添加角色立绘
+                if (scene.characters && scene.characters.length > 0) {
+                    // 添加所有角色的立绘
+                    scene.characters.forEach(character => {
+                        if (character.sprite && character.sprite !== 'https://files.catbox.moe/') {
+                            resources.push(character.sprite);
+                    }
+                    });
+                }
+
+                // 添加BGM
+                if (scene.bgm) {
+                    resources.push(scene.bgm);
+                }
+
+                // 添加音效
+                if (scene.sfx) {
+                    resources.push(scene.sfx);
+                }
+
+                return resources;
+            }
+
+            // 预加载所有资源 - 新增函数
+            function preloadAllResources() {
+                // 收集所有场景中的资源
+                const allResources = [];
+                gameData.scenes.forEach(scene => {
+                    const resources = getResourcesFromScene(scene);
+                    allResources.push(...resources);
+                });
+
+                // 过滤出唯一的资源URL
+                const uniqueResources = [...new Set(allResources)].filter(url => url && url !== 'https://files.catbox.moe/');
+
+                // 添加UI资源
+                const uiResources = [
+                    "https://files.catbox.moe/guh1mb.png", // 对话框背景
+                    "https://files.catbox.moe/u1m6cq.png", // 名称分隔线
+                    "https://files.catbox.moe/f8j7jc.png", // 点击提示
+                    "https://files.catbox.moe/4ax4nl.png", // 回看按钮
+                    "https://files.catbox.moe/t4azul.png", // 保存按钮
+                    "https://files.catbox.moe/cnsbkk.png", // 重置按钮
+                    "https://files.catbox.moe/g8oabk.png", // 自动按钮
+                    "https://files.catbox.moe/zivmnb.png", // 自动按钮激活状态
+                    "https://files.catbox.moe/6gk07h.png", // 设置按钮
+                    "https://files.catbox.moe/nrntih.png", // 设置面板背景
+                    "https://files.catbox.moe/0unxfg.png", // 设置标题
+                    "https://files.catbox.moe/16kqva.png", // BGM音量图标
+                    "https://files.catbox.moe/jnriro.png", // 音效音量图标
+                    "https://files.catbox.moe/x73w1m.png", // 全屏按钮
+                    "https://files.catbox.moe/7uvf13.png", // 全屏退出按钮
+                    "https://files.catbox.moe/fjqkez.png", // 确定按钮
+                    "https://files.catbox.moe/vegclz.png", // 回看背景
+                    "https://files.catbox.moe/gx71j4.png", // 回看关闭按钮
+                    "https://files.catbox.moe/vxcr33.ogg", // 点击音效
+                    "https://files.catbox.moe/xhdrtg.ogg", // 选择音效
+                    "https://files.catbox.moe/o7i2gn.png", // 跳过按钮
+                    "https://files.catbox.moe/jl25x9.png", // 全屏退出按钮 (快速全屏)
+                    "https://files.catbox.moe/9nxm9a.png"  // 全屏进入按钮 (快速全屏)
+                ];
+
+                uniqueResources.push(...uiResources);
+
+                // 显示加载界面
+                document.getElementById('loadingScreen').style.display = 'flex';
+
+                // 跟踪加载进度
+                let loadedCount = 0;
+                const totalResources = uniqueResources.length;
+
+                return new Promise((resolve) => {
+                    // 如果没有资源需要加载，直接完成
+                    if (totalResources === 0) {
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        resolve();
+                        return;
+                    }
+
+                    // 更新加载进度函数
+                    function updateProgress() {
+                        const progress = Math.round((loadedCount / totalResources) * 100);
+                        document.getElementById('loadingBar').style.width = progress + '%';
+                        document.getElementById('loadingText').textContent = `加载中... (${progress}%)`;
+                    }
+
+                    // 加载所有资源
+                    uniqueResources.forEach(url => {
+                        preloadResource(url)
+                            .then(() => {
+                                loadedCount++;
+                                updateProgress();
+                                if (loadedCount === totalResources) {
+                                    document.getElementById('loadingScreen').style.display = 'none';
+                                    resolve();
+                                }
+                            })
+                            .catch(() => {
+                                loadedCount++;
+                                updateProgress();
+                                if (loadedCount === totalResources) {
+                                    document.getElementById('loadingScreen').style.display = 'none';
+                                    resolve();
+                                }
+                            });
+                    });
+                });
+            }
+
+            // 预加载一组场景 (旧版本方法，保留向后兼容)
+            function preloadScenes(startIndex, count = 3) {
+                const loadingScreen = document.getElementById('loadingScreen');
+                const loadingBar = document.getElementById('loadingBar');
+                const loadingText = document.getElementById('loadingText');
+
+                // 如果开始索引无效，不执行预加载
+                if (startIndex < 0 || startIndex >= gameData.scenes.length) {
+                    return Promise.resolve();
+                }
+
+                // 收集要加载的资源
+                const resourcesToLoad = [];
+                for (let i = startIndex; i < Math.min(startIndex + count, gameData.scenes.length); i++) {
+                    const scene = gameData.scenes[i];
+                    if (scene) {
+                        const sceneResources = getResourcesFromScene(scene);
+                        resourcesToLoad.push(...sceneResources);
+                    }
+                }
+
+                // 过滤出唯一的资源URL
+                const uniqueResources = [...new Set(resourcesToLoad)].filter(url => url && !isResourceLoaded(url));
+
+                // 如果没有资源需要加载，直接返回
+                if (uniqueResources.length === 0) {
+                    // 隐藏加载界面
+                    loadingScreen.style.display = 'none';
+                    return Promise.resolve();
+                }
+
+                // 显示加载界面
+                loadingScreen.style.display = 'flex';
+
+                // 用于跟踪加载进度
+                let loadedCount = 0;
+
+                // 更新加载进度
+                function updateProgress() {
+                    const progress = Math.round((loadedCount / uniqueResources.length) * 100);
+                    loadingBar.style.width = progress + '%';
+                    loadingText.textContent = `加载中... (${progress}%)`;
+                }
+
+                // 开始加载资源
+                const loadPromises = uniqueResources.map(url =>
+                    preloadResource(url)
+                        .then(() => {
+                            loadedCount++;
+                            updateProgress();
+                        })
+                        .catch(() => {
+                            loadedCount++;
+                            updateProgress();
+                        })
+                );
+
+                return Promise.all(loadPromises).then(() => {
+                    // 所有资源加载完成后，隐藏加载界面
+                    loadingScreen.style.display = 'none';
+
+                    // 更新最后加载的场景索引
+                    gameState.lastLoadedSceneIndex = startIndex + count - 1;
+                });
+            }
+
+            // 预加载界面资源 (旧版本方法，保留向后兼容)
+            function preloadUIResources() {
+                const uiResources = [
+                    "https://files.catbox.moe/guh1mb.png", // 对话框背景
+                    "https://files.catbox.moe/u1m6cq.png", // 名称分隔线
+                    "https://files.catbox.moe/f8j7jc.png", // 点击提示
+                    "https://files.catbox.moe/4ax4nl.png", // 回看按钮
+                    "https://files.catbox.moe/t4azul.png", // 保存按钮
+                    "https://files.catbox.moe/cnsbkk.png", // 重置按钮
+                    "https://files.catbox.moe/g8oabk.png", // 自动按钮
+                    "https://files.catbox.moe/zivmnb.png", // 自动按钮激活状态
+                    "https://files.catbox.moe/6gk07h.png", // 设置按钮
+                    "https://files.catbox.moe/nrntih.png", // 设置面板背景
+                    "https://files.catbox.moe/0unxfg.png", // 设置标题
+                    "https://files.catbox.moe/16kqva.png", // BGM音量图标
+                    "https://files.catbox.moe/jnriro.png", // 音效音量图标
+                    "https://files.catbox.moe/x73w1m.png", // 全屏按钮
+                    "https://files.catbox.moe/7uvf13.png", // 全屏退出按钮
+                    "https://files.catbox.moe/fjqkez.png", // 确定按钮
+                    "https://files.catbox.moe/vegclz.png", // 回看背景
+                    "https://files.catbox.moe/gx71j4.png", // 回看关闭按钮
+                    "https://files.catbox.moe/vxcr33.ogg", // 点击音效
+                    "https://files.catbox.moe/xhdrtg.ogg"  // 选择音效
+                ];
+
+                // 集中加载UI资源
+                const loadPromises = uiResources.map(url => preloadResource(url));
+                return Promise.all(loadPromises);
+            }
+
+            // 预加载初始场景 (旧版本方法，保留向后兼容)
+            function preloadInitialScenes() {
+                return preloadScenes(0, 5); // 预加载前5个场景
+            }
+
+            // 预加载下一批场景 (旧版本方法，保留向后兼容)
+            function preloadNextScenes(currentIndex) {
+                // 如果当前索引接近最后加载的场景，继续预加载
+                if (currentIndex + 3 > gameState.lastLoadedSceneIndex) {
+                    // 在后台预加载，无需等待完成
+                    const nextIndex = gameState.lastLoadedSceneIndex + 1;
+                    if (nextIndex < gameData.scenes.length) {
+                        // 异步预加载，不阻塞游戏流程
+                        setTimeout(() => {
+                            preloadScenes(nextIndex, 5);
+                        }, 100);
+                    }
+                }
+            }
+
+            return {
+                preloadUIResources,
+                preloadInitialScenes,
+                preloadNextScenes,
+                preloadScenes,
+                preloadAllResources, // 添加新方法
+                getResourcesFromScene // 导出此方法以便其他地方使用
+            };
+        })();
+
+        // 状态持久化管理器 - 使用localStorage实现页面刷新后状态保持
+        const stateManager = (function() {
+            // 使用实例ID作为存储键的一部分，确保每个实例有独立的状态
+            const STORAGE_KEY = `vnState_${INSTANCE_ID}`;
+
+            // 检查是否初始化过标记
+            const INIT_KEY = `vnInit_${INSTANCE_ID}`;
+
+            // 检查是否是首次加载
+            function isInitialized() {
+                return localStorage.getItem(INIT_KEY) === "true";
+            }
+
+            // 标记已初始化
+            function markInitialized() {
+                localStorage.setItem(INIT_KEY, "true");
+            }
+
+            // 保存当前游戏状态
+            function saveGameState() {
+                const stateToSave = {
+                    currentSceneIndex: gameState.currentSceneIndex,
+                    bgmVolume: gameState.bgmVolume,
+                    soundVolume: gameState.soundVolume,
+                    dialogHistory: [...gameState.dialogHistory], // 创建深拷贝
+                    lastBGMUrl: gameState.lastBGMUrl,
+                    bgmState: gameState.bgmState,
+                    instanceId: INSTANCE_ID,
+                    timestamp: Date.now() // 添加时间戳用于验证
+                };
+
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+                    gameState.stateSaved = true;
+                    return true;
+                } catch(e) {
+                    console.error("Failed to save state:", e);
+                    return false;
+                }
+            }
+
+            // 加载游戏状态
+            function loadGameState() {
+                try {
+                    const savedData = localStorage.getItem(STORAGE_KEY);
+                    if (!savedData) return false;
+
+                    const parsedState = JSON.parse(savedData);
+
+                    // 验证状态是否属于当前实例
+                    if (parsedState.instanceId !== INSTANCE_ID) {
+                        console.warn("State from different instance, ignoring");
+                        return false;
+                    }
+
+                    // 恢复音量设置
+                    if (parsedState.bgmVolume !== undefined) {
+                        gameState.bgmVolume = parsedState.bgmVolume;
+                    }
+                    if (parsedState.soundVolume !== undefined) {
+                        gameState.soundVolume = parsedState.soundVolume;
+                    }
+
+                    // 恢复对话历史
+                    if (parsedState.dialogHistory && Array.isArray(parsedState.dialogHistory)) {
+                        gameState.dialogHistory = [...parsedState.dialogHistory];
+                    }
+
+                    // 恢复BGM状态
+                    if (parsedState.lastBGMUrl) {
+                        gameState.lastBGMUrl = parsedState.lastBGMUrl;
+                    }
+                    if (parsedState.bgmState) {
+                        gameState.bgmState = parsedState.bgmState;
+                    }
+
+                    // 恢复场景位置
+                    let sceneIndexToRestore = 0; // 默认从头开始
+                    if (parsedState.currentSceneIndex !== undefined &&
+                        parsedState.currentSceneIndex >= 0 &&
+                        parsedState.currentSceneIndex < gameData.scenes.length) {
+                        sceneIndexToRestore = parsedState.currentSceneIndex;
+                    }
+
+                    gameState.stateSaved = true;
+                    return sceneIndexToRestore;
+                } catch(e) {
+                    console.error("Failed to load state:", e);
+                    return false;
+                }
+            }
+
+            // 重置游戏状态
+            function resetGameState() {
+                // 从localStorage中移除状态
+                localStorage.removeItem(STORAGE_KEY);
+
+                // 重置当前状态
+                gameState.currentSceneIndex = -1;
+                gameState.dialogHistory = [];
+                gameState.lastBGMUrl = "";
+                gameState.bgmState = "playing";
+                gameState.stateSaved = false;
+
+                // 停止当前BGM
+                const bgm = document.getElementById('vnBGM');
+                bgm.pause();
+                bgm.currentTime = 0;
+                gameState.isBGMPlaying = false;
+
+                return true;
+            }
+
+            return {
+                saveGameState,
+                loadGameState,
+                resetGameState,
+                isInitialized,
+                markInitialized
+            };
+        })();
+
+        // 初始化游戏
+        document.addEventListener('DOMContentLoaded', function() {
+            // 首先加载所有资源，确保游戏可以流畅运行
+            document.getElementById('loadingScreen').style.display = 'flex';
+            document.getElementById('gameWrapper').style.display = 'none';
+
+            // 使用新的完整预加载方法
+            resourceManager.preloadAllResources()
+                .then(() => {
+                    // 所有资源加载完毕，显示游戏
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('gameWrapper').style.display = 'flex';
+                    initVisualNovel();
+                })
+                .catch(error => {
+                    console.error('Error during resource loading:', error);
+                    // 即使有错误也尝试初始化游戏
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('gameWrapper').style.display = 'flex';
+                    initVisualNovel();
+                });
+        });
+
+        // 初始化视觉小说
+        function initVisualNovel() {
+            // 添加跳过按钮和快速全屏按钮
+            addSkipButton();
+            addQuickFullscreenButton();
+
+            // 找到第一个BGM标记
+            const firstBgmScene = gameData.scenes.find(scene => scene.bgm && scene.isMarker);
+
+            // 根据是否初始化过决定行为
+            if (!stateManager.isInitialized()) {
+                // 首次加载，标记为已初始化
+                stateManager.markInitialized();
+
+                // 从第一个场景开始
+                showDialog(0);
+
+                // 播放初始BGM
+                if (firstBgmScene && firstBgmScene.bgm) {
+                    playBGM(firstBgmScene.bgm);
+                }
+            } else {
+                // 非首次加载，尝试恢复保存的状态
+                const savedSceneIndex = stateManager.loadGameState();
+
+                if (savedSceneIndex !== false) {
+                    // 有保存的状态，从保存点恢复
+                    showDialog(savedSceneIndex);
+
+                    // 从保存的状态恢复BGM
+                    applyBGMState();
+                } else {
+                    // 没有保存状态，从头开始
+                    showDialog(0);
+
+                    // 播放初始BGM
+                    if (firstBgmScene && firstBgmScene.bgm) {
+                        playBGM(firstBgmScene.bgm);
+                    }
+                }
+            }
+
+            // 添加点击事件
+            document.getElementById('vnGameContainer').addEventListener('click', handleClick);
+
+            // 初始化游戏控制按钮
+            initGameControls();
+
+            // 更新音量设置
+            updateVolumeSettings();
+
+            // 设置全屏按钮状态
+            updateFullscreenButtonState();
+            updateQuickFullscreenIcon(); // 更新快速全屏按钮
+
+            // 如果是移动设备，显示全屏选项
+            if (isDeviceMobile()) {
+                document.querySelector('.fullscreen-option').style.display = 'block';
+            } else {
+                document.querySelector('.fullscreen-option').style.display = 'none';
+            }
+
+            // 初始化文本回看功能
+            initBacklog();
+
+            // 初始化保存按钮
+            initSaveButton();
+
+            // 添加键盘事件监听 - 为PC端添加键盘控制功能
+            document.addEventListener('keydown', function(event) {
+                // 按Enter键推进剧情
+                if (event.key === 'Enter') {
+                    // 如果不在设置面板、回看或对话动画中，则推进剧情
+                    if (!gameState.backlogOpen &&
+                        document.getElementById('settingsPanel').style.display !== 'flex' &&
+                        !gameState.inTransition) {
+
+                        if (gameState.isAnimating) {
+                            // 如果在动画中，完成当前动画
+                            skipDialogAnimation();
+                        } else {
+                            // 否则前进到下一个对话
+                            playClickSound();
+                            advanceDialog();
+                        }
+                    }
+                }
+
+                // 按F11键或F键切换全屏
+                if (event.key === 'F11' || event.key === 'f' || event.key === 'F') {
+                    event.preventDefault();
+                    quickToggleFullscreen();
+                }
+
+                // 按Esc键退出全屏或关闭设置/回看
+                if (event.key === 'Escape') {
+                    if (gameState.isFullscreen) {
+                        quickToggleFullscreen();
+                    } else if (gameState.backlogOpen) {
+                        closeBacklog();
+                    } else if (document.getElementById('settingsPanel').style.display === 'flex') {
+                        closeSettingsPanel();
+                    }
+                }
+            });
+
+            // 监听全屏变化以更新body标记
+            updateFullscreenBodyClass();
+        }
+
+        // 更新body类以区分全屏状态
+        function updateFullscreenBodyClass() {
+            if (gameState.isFullscreen) {
+                document.body.classList.add('fullscreen-active');
+            } else {
+                document.body.classList.remove('fullscreen-active');
+            }
+        }
+
+        // 跳过对话动画函数 - 辅助键盘控制
+        function skipDialogAnimation() {
+            // 清除动画，直接显示完整文本
+            clearInterval(dialogInterval);
+
+            const currentScene = gameData.scenes[gameState.currentSceneIndex];
+            const text = currentScene.text;
+
+            document.getElementById('vnDialogText').textContent = text;
+            document.getElementById('clickIndicator').style.display = 'block';
+
+            gameState.isAnimating = false;
+
+            // 添加当前对话到历史记录（如果之前没有添加）
+            if (gameState.dialogHistory.length === 0 ||
+                gameState.dialogHistory[gameState.dialogHistory.length - 1].dialog !== text) {
+                gameState.dialogHistory.push({
+                    name: currentScene.name,
+                    dialog: text
+                });
+
+                // 如果对话历史记录超过一定数量，删除最早的记录
+                if (gameState.dialogHistory.length > 100) {
+                    gameState.dialogHistory.shift();
+                }
+
+                // 自动保存状态
+                stateManager.saveGameState();
+            }
+        }
+
+        // 添加跳过按钮
+        function addSkipButton() {
+            const skipButton = document.createElement('div');
+            skipButton.className = 'vn-menu-button';
+            skipButton.id = 'vnSkipButton';
+            skipButton.title = '跳过剧情';
+            skipButton.style.backgroundImage = 'url("https://files.catbox.moe/o7i2gn.png")';
+
+            // 将跳过按钮添加到菜单的最前面
+            const gameMenu = document.querySelector('.vn-game-menu');
+            if (gameMenu.firstChild) {
+                gameMenu.insertBefore(skipButton, gameMenu.firstChild);
+            } else {
+                gameMenu.appendChild(skipButton);
+            }
+
+            skipButton.addEventListener('click', skipToEnd);
+        }
+
+        // 跳过到最后一个场景的函数
+        function skipToEnd() {
+            playClickSound();
+
+            // 如果BGM正在播放，淡出BGM
+            if (gameState.isBGMPlaying) {
+                fadeOutBGM();
+            }
+
+            // 跳到最后一个非标记场景
+            let lastSceneIndex = gameData.scenes.length - 1;
+            while (lastSceneIndex >= 0 && gameData.scenes[lastSceneIndex].isMarker) {
+                lastSceneIndex--;
+            }
+
+            // 如果找到有效场景，跳转到该场景
+            if (lastSceneIndex >= 0) {
+                showDialog(lastSceneIndex);
+            }
+        }
+
+        // 添加快速全屏按钮
+        function addQuickFullscreenButton() {
+            const fullscreenButton = document.createElement('div');
+            fullscreenButton.className = 'vn-menu-button';
+            fullscreenButton.id = 'vnQuickFullscreenButton';
+            fullscreenButton.title = '全屏显示';
+            fullscreenButton.style.backgroundImage = 'url("https://files.catbox.moe/9nxm9a.png")';
+            fullscreenButton.style.display = 'block'; // 确保PC端也显示
+
+            // 插入在跳过按钮后面
+            const skipButton = document.getElementById('vnSkipButton');
+            skipButton.parentNode.insertBefore(fullscreenButton, skipButton.nextSibling);
+
+            fullscreenButton.addEventListener('click', quickToggleFullscreen);
+        }
+
+        // 快速切换全屏状态
+        function quickToggleFullscreen() {
+            playClickSound();
+
+            const gameContainer = document.getElementById('vnGameContainer');
+
+            if (!gameState.isFullscreen) {
+                // 进入全屏模式
+                gameContainer.classList.add('landscape-fullscreen');
+
+                // PC端和移动端使用不同的全屏请求方式
+                if (isDeviceMobile()) {
+                    // 移动设备全屏请求
+                    if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen();
+                    } else if (document.documentElement.webkitRequestFullscreen) {
+                        document.documentElement.webkitRequestFullscreen();
+                    } else if (document.documentElement.msRequestFullscreen) {
+                        document.documentElement.msRequestFullscreen();
+                    }
+
+                    // 请求横屏
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(function(error) {
+                            console.log('无法锁定横屏: ', error);
+                        });
+                    }
+                } else {
+                    // PC端全屏请求
+                    if (gameContainer.requestFullscreen) {
+                        gameContainer.requestFullscreen();
+                    } else if (gameContainer.webkitRequestFullscreen) {
+                        gameContainer.webkitRequestFullscreen();
+                    } else if (gameContainer.mozRequestFullScreen) {
+                        gameContainer.mozRequestFullScreen();
+                    } else if (gameContainer.msRequestFullscreen) {
+                        gameContainer.msRequestFullscreen();
+                    }
+                }
+
+                // 强制页面滚动到顶部
+                window.scrollTo(0, 0);
+            } else {
+                // 退出全屏模式
+                gameContainer.classList.remove('landscape-fullscreen');
+
+                // 退出设备全屏
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+
+                // 退出全屏时滚动到页面底部 - 增强效果
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'auto'
+                    });
+                }, 100);
+            }
+
+            gameState.isFullscreen = !gameState.isFullscreen;
+
+            // 更新全屏按钮图标和body类
+            updateQuickFullscreenIcon();
+            updateFullscreenBodyClass();
+            
+            // 更新角色显示
+            updateCharactersOnFullscreenChange();
+        }
+
+        // 更新快速全屏按钮图标
+        function updateQuickFullscreenIcon() {
+            const fullscreenButton = document.getElementById('vnQuickFullscreenButton');
+            if (fullscreenButton) {
+                fullscreenButton.style.backgroundImage = gameState.isFullscreen ?
+                    'url("https://files.catbox.moe/jl25x9.png")' :
+                    'url("https://files.catbox.moe/9nxm9a.png")';
+            }
+        }
+
+        // 应用BGM状态（从保存数据恢复）
+        function applyBGMState() {
+            if (gameState.lastBGMUrl && gameState.bgmState) {
+                // 如果状态是播放，并且有BGM URL
+                if (gameState.bgmState === "playing") {
+                    playBGM(gameState.lastBGMUrl);
+                }
+                // 如果状态是停止
+                else if (gameState.bgmState === "stopped") {
+                    // 确保音乐停止
+                    const bgm = document.getElementById('vnBGM');
+                    bgm.pause();
+                    gameState.isBGMPlaying = false;
+                }
+            }
+        }
+
+        // 初始化保存按钮
+        function initSaveButton() {
+            const saveButton = document.getElementById('vnSaveButton');
+            saveButton.addEventListener('click', function() {
+                playClickSound();
+                stateManager.saveGameState();
+            });
+        }
+
+        // 初始化文本回看功能
+        function initBacklog() {
+            // 添加文本回看按钮点击事件
+            document.getElementById('vnBacklogButton').addEventListener('click', showBacklog);
+
+            // 添加滚轮事件监听器，向上滚动时显示文本回看
+            document.getElementById('vnGameContainer').addEventListener('wheel', function(event) {
+                if (event.deltaY < 0) { // 向上滚动
+                    showBacklog();
+                }
+            });
+
+            // 移动端添加触摸事件，向上滑动显示文本回看
+            let touchStartY = 0;
+            document.getElementById('vnGameContainer').addEventListener('touchstart', function(event) {
+                touchStartY = event.touches[0].clientY;
+            });
+
+            document.getElementById('vnGameContainer').addEventListener('touchmove', function(event) {
+                const touchEndY = event.touches[0].clientY;
+                const deltaY = touchEndY - touchStartY;
+
+                if (deltaY > 50) { // 向上滑动距离超过50px才触发
+                    showBacklog();
+                }
+            });
+        }
+
+        // 显示文本回看
+        function showBacklog() {
+            // 如果已经打开了设置面板或有选项菜单，不显示回看
+            if (document.getElementById('settingsPanel').style.display === 'flex' ||
+                document.getElementById('vnChoicesContainer').style.display === 'flex') {
+                return;
+            }
+
+            // 播放点击音效
+            playClickSound();
+
+            // 暂停自动模式
+            if (gameState.autoMode) {
+                toggleAutoMode();
+            }
+
+            // 显示回看界面
+            document.getElementById('backlogContainer').style.display = 'block';
+            gameState.backlogOpen = true;
+
+            // 更新回看内容
+            updateBacklogContent();
+        }
+
+        // 更新回看内容 - 修改为从上到下显示历史对话
+        function updateBacklogContent() {
+            const backlogContent = document.getElementById('backlogContent');
+            backlogContent.innerHTML = '';
+
+            // 正序显示对话历史，从上到下（最早到最新）
+            for (let i = 0; i < gameState.dialogHistory.length; i++) {
+                const entry = gameState.dialogHistory[i];
+
+                const backlogEntry = document.createElement('div');
+                backlogEntry.className = 'backlog-entry';
+
+                const backlogName = document.createElement('div');
+                backlogName.className = 'backlog-name';
+                backlogName.textContent = entry.name;
+
+                const backlogText = document.createElement('div');
+                backlogText.className = 'backlog-text';
+                backlogText.textContent = entry.dialog;
+
+                backlogEntry.appendChild(backlogName);
+                backlogEntry.appendChild(backlogText);
+                backlogContent.appendChild(backlogEntry);
+            }
+        }
+
+        // 关闭文本回看
+        function closeBacklog() {
+            document.getElementById('backlogContainer').style.display = 'none';
+            gameState.backlogOpen = false;
+
+            // 播放点击音效
+            playClickSound();
+        }
+
+        // 切换背景图片（带过渡动画）
+        function changeBackground(imageUrl) {
+            const container = document.getElementById('vnGameContainer');
+            const transition = document.getElementById('bgTransition');
+
+            gameState.inTransition = true;
+
+            // 激活过渡效果
+            transition.classList.add('active');
+
+            // 等待过渡完成后更换背景
+            setTimeout(() => {
+                container.style.backgroundImage = `url('${imageUrl}')`;
+
+                // 过渡结束后移除效果
+                setTimeout(() => {
+                    transition.classList.remove('active');
+                    gameState.inTransition = false;
+
+                    // 获取当前场景，更新角色立绘
+                    const currentScene = gameData.scenes[gameState.currentSceneIndex];
+                    if (currentScene && currentScene.characters && currentScene.characters.length > 0 &&
+                        currentScene.characters[0].sprite !== '-') {
+                        // 使用当前角色数组中的副本，确保不共享引用
+                        const charactersCopy = currentSceneCharacters.map(char => ({...char}));
+                        
+                        // 确保只有一个实例能被添加
+                        // 使用角色名来区分不同角色
+                        if (currentScene.name && currentScene.name !== "" && 
+                            !activeCharacterNames.includes(currentScene.name)) {
+                            activeCharacterNames.push(currentScene.name);
+                        }
+                        
+                        // 更新角色列表，确保使用深度复制
+                        updateCharacters(charactersCopy);
+                    } else {
+                        // 如果没有角色，清空当前角色列表
+                        currentSceneCharacters = [];
+                        activeCharacterNames = [];
+                        updateCharacters([]);
+                    }
+
+                    // 在这里继续显示对话
+                    startDialogAnimation();
+                }, 500);
+            }, 500);
+        }
+
+        // 开始对话动画 - 修改为支持文本滚动
+        function startDialogAnimation() {
+            const currentScene = gameData.scenes[gameState.currentSceneIndex];
+            const dialogTextContainer = document.getElementById('vnDialogTextContainer');
+            const dialogText = document.getElementById('vnDialogText');
+            const nameTag = document.getElementById('vnNameTag');
+            const nameSeparator = document.getElementById('nameSeparator');
+
+            // 检查是否有角色退场
+            checkCharacterExit(currentScene);
+
+            // 设置角色名
+            nameTag.textContent = currentScene.name.replace("游星", "游星");
+
+            // 如果是旁白（没有角色名），隐藏名称和分隔线
+            if (currentScene.name === "") {
+                nameTag.style.display = "none";
+                nameSeparator.style.display = "none";
+            } else {
+                nameTag.style.display = "block";
+                nameSeparator.style.display = "block";
+                
+                // 检查是否是手机未全屏状态
+                const isMobileNotFullscreen = isMobileDevice() && !gameState.isFullscreen;
+                
+                // 针对手机未全屏状态的特殊处理
+                if (isMobileNotFullscreen) {
+                    // 确保当前说话角色在活跃列表中
+                    if (!activeCharacterNames.includes(currentScene.name) && 
+                        currentScene.characters && 
+                        currentScene.characters.length > 0) {
+                        activeCharacterNames.push(currentScene.name);
+                        currentSceneCharacters.push({...currentScene.characters[0], position: 'center'});
+                    }
+                    
+                    // 无论如何都强制更新角色显示
+                    forceUpdateCharacterPositions();
+                } else {
+                    // 电脑端或手机全屏的处理逻辑
+                    // 只有在当前场景有角色立绘且角色不在活跃列表中时才添加新角色
+                    if (!activeCharacterNames.includes(currentScene.name) && 
+                        currentScene.characters && 
+                        currentScene.characters.length > 0) {
+                        
+                        // 将角色添加到活跃角色列表
+                        activeCharacterNames.push(currentScene.name);
+                        
+                        // 将角色立绘添加到列表
+                        currentSceneCharacters.push({...currentScene.characters[0]});
+                        
+                        // 使用强制更新函数，立即调整所有角色位置
+                        forceUpdateCharacterPositions();
+                    }
+                    // 如果角色已经在活跃列表中，并且有新的立绘，更新立绘
+                    else if (activeCharacterNames.includes(currentScene.name) && 
+                             currentScene.characters && 
+                             currentScene.characters.length > 0) {
+                        
+                        // 找到角色在活跃列表中的索引
+                        const charIndex = activeCharacterNames.indexOf(currentScene.name);
+                        
+                        // 如果立绘URL不同，更新立绘
+                        if (currentSceneCharacters[charIndex].sprite !== currentScene.characters[0].sprite) {
+                            updateCharacterSprite(currentScene.name, currentScene.characters[0].sprite);
+                        }
+                    }
+                }
+            }
+
+            // 清除旧文本
+            dialogText.textContent = '';
+
+            // 重置滚动位置
+            dialogTextContainer.scrollTop = 0;
+
+            // 隐藏点击提示
+            document.getElementById('clickIndicator').style.display = 'none';
+
+            // 逐字显示文本
+            let i = 0;
+            const text = currentScene.text.replace("游星", "游星");
+            gameState.isAnimating = true;
+
+            clearInterval(dialogInterval);
+            dialogInterval = setInterval(() => {
+                if (i < text.length) {
+                    dialogText.textContent += text.charAt(i);
+                    i++;
+
+                    // 自动滚动到最新文本
+                    dialogTextContainer.scrollTop = dialogTextContainer.scrollHeight;
+                } else {
+                    clearInterval(dialogInterval);
+                    gameState.isAnimating = false;
+
+                    // 显示点击提示
+                    document.getElementById('clickIndicator').style.display = 'block';
+
+                    // 添加当前对话到历史记录
+                    gameState.dialogHistory.push({
+                        name: currentScene.name,
+                        dialog: text
+                    });
+
+                    // 如果对话历史记录超过一定数量，删除最早的记录
+                    if (gameState.dialogHistory.length > 100) {
+                        gameState.dialogHistory.shift();
+                    }
+
+                    // 自动保存状态
+                    stateManager.saveGameState();
+
+                    // 如果是自动模式，等待设定时间后自动继续
+                    if (gameState.autoMode) {
+                        setTimeout(() => {
+                            advanceDialog();
+                        }, autoModeDelay);
+                    }
+                }
+            }, dialogSpeed);
+        }
+
+        // 检查角色退场
+        function checkCharacterExit(currentScene) {
+            // 如果当前场景文本明确指出角色退场
+            if (currentScene.text && currentScene.text.includes("退场标记")) {
+                // 清空所有角色
+                currentSceneCharacters = [];
+                activeCharacterNames = [];
+                updateCharacters([]);
+                return;
+            }
+            
+            // 如果当前对话是旁白，检查是否有角色退场的线索
+            if (currentScene.name === "" && currentScene.text) {
+                const text = currentScene.text.toLowerCase();
+                
+                // 检查文本中是否有角色离开、退场等关键词
+                const exitKeywords = ['离开', '退场', '走了', '走出', '退出', '离去', '离开了', '走开', '不见了'];
+                
+                // 如果文本中包含退场关键词，检查是否提到了某个角色
+                if (exitKeywords.some(keyword => text.includes(keyword))) {
+                    // 检查是否提到了某个角色名
+                    const mentionedCharacterIndex = activeCharacterNames.findIndex(name => 
+                        text.includes(name.toLowerCase())
+                    );
+                    
+                    if (mentionedCharacterIndex >= 0) {
+                        // 旁白中提到了某个角色，且包含退场关键词，移除该角色
+                        const characterToRemove = activeCharacterNames[mentionedCharacterIndex];
+                        
+                        // 从角色名称列表和立绘列表中移除该角色
+                        activeCharacterNames.splice(mentionedCharacterIndex, 1);
+                        currentSceneCharacters.splice(mentionedCharacterIndex, 1);
+                        
+                        // 更新角色显示
+                        currentSceneCharacters = autoAdjustCharacterPositions(currentSceneCharacters);
+                        updateCharacters(currentSceneCharacters);
+                    }
+                }
+            }
+        }
+
+        // 播放背景音乐
+        function playBGM(bgmUrl) {
+            const bgm = document.getElementById('vnBGM');
+            const bgmSource = document.getElementById('bgmSource');
+
+            // 保存BGM URL用于恢复
+            gameState.lastBGMUrl = bgmUrl;
+
+            // 如果是继续当前音乐，不做任何操作
+            if (bgmUrl === "continue") {
+                return;
+            }
+
+            // 如果要停止音乐
+            if (bgmUrl === "stop") {
+                // 淡出当前音乐
+                if (gameState.isBGMPlaying) {
+                    fadeOutBGM();
+                }
+                gameState.bgmState = "stopped";
+
+                // 自动保存状态
+                stateManager.saveGameState();
+                return;
+            }
+
+            // 如果当前有音乐在播放，先淡出
+            if (gameState.isBGMPlaying) {
+                fadeOutBGM(() => {
+                    // 淡出完成后播放新音乐
+                    bgmSource.src = bgmUrl;
+                    bgm.load();
+                    bgm.volume = 0;
+                    bgm.play().then(() => {
+                        gameState.isBGMPlaying = true;
+                        gameState.bgmState = "playing";
+                        // 淡入新音乐
+                        fadeInBGM();
+
+                        // 自动保存状态
+                        stateManager.saveGameState();
+                    }).catch(() => {
+                        gameState.isBGMPlaying = false;
+                    });
+                });
+            } else {
+                // 没有音乐在播放，直接播放新音乐
+                bgmSource.src = bgmUrl;
+                bgm.load();
+                bgm.volume = 0;
+                bgm.play().then(() => {
+                    gameState.isBGMPlaying = true;
+                    gameState.bgmState = "playing";
+                    // 淡入新音乐
+                    fadeInBGM();
+
+                    // 自动保存状态
+                    stateManager.saveGameState();
+                }).catch(() => {
+                    gameState.isBGMPlaying = false;
+                });
+            }
+        }
+
+        // 淡入背景音乐
+        function fadeInBGM() {
+            const bgm = document.getElementById('vnBGM');
+            let volume = 0;
+            const interval = setInterval(() => {
+                volume += 0.05;
+                if (volume >= gameState.bgmVolume) {
+                    volume = gameState.bgmVolume;
+                    clearInterval(interval);
+                }
+                bgm.volume = volume;
+            }, 100);
+        }
+
+        // 淡出背景音乐
+        function fadeOutBGM(callback) {
+            const bgm = document.getElementById('vnBGM');
+            gameState.bgmFadingOut = true;
+            let volume = bgm.volume;
+            const interval = setInterval(() => {
+                volume -= 0.05;
+                if (volume <= 0) {
+                    volume = 0;
+                    bgm.pause();
+                    gameState.isBGMPlaying = false;
+                    gameState.bgmFadingOut = false;
+                    clearInterval(interval);
+                    if (callback) callback();
+                }
+                bgm.volume = volume;
+            }, 100);
+        }
+
+        // 播放音效
+        function playSFX(sfxUrl) {
+            const sfx = document.getElementById('vnSFX');
+            const sfxSource = document.getElementById('sfxSource');
+
+            // 使用Catbox前缀处理URL
+            sfxUrl = addCatboxPrefix(sfxUrl);
+
+            // 如果要停止音效
+            if (sfxUrl === "stop") {
+                if (gameState.sfxPlaying) {
+                    fadeOutSFX();
+                }
+                return;
+            }
+
+            // 播放新音效
+            sfxSource.src = sfxUrl;
+            sfx.load();
+            sfx.volume = 0;
+            sfx.play().then(() => {
+                gameState.sfxPlaying = true;
+                // 淡入新音效
+                fadeInSFX();
+
+                // 音效播放完成后自动淡出
+                sfx.onended = () => {
+                    gameState.sfxPlaying = false;
+                };
+            }).catch(() => {
+                gameState.sfxPlaying = false;
+            });
+        }
+
+        // 淡入音效
+        function fadeInSFX() {
+            const sfx = document.getElementById('vnSFX');
+            let volume = 0;
+            const interval = setInterval(() => {
+                volume += 0.1;
+                if (volume >= gameState.soundVolume) {
+                    volume = gameState.soundVolume;
+                    clearInterval(interval);
+                }
+                sfx.volume = volume;
+            }, 50);
+        }
+
+        // 淡出音效
+        function fadeOutSFX() {
+            const sfx = document.getElementById('vnSFX');
+            let volume = sfx.volume;
+            const interval = setInterval(() => {
+                volume -= 0.1;
+                if (volume <= 0) {
+                    volume = 0;
+                    sfx.pause();
+                    gameState.sfxPlaying = false;
+                    clearInterval(interval);
+                }
+                sfx.volume = volume;
+            }, 50);
+        }
+
+        // 用于保存当前场景中显示的所有角色信息
+        let currentSceneCharacters = [];
+        
+        // 用于记录当前在场的角色名称
+        let activeCharacterNames = [];
+
+        // 显示对话
+        function showDialog(sceneIndex) {
+            // 如果正在动画中，不处理
+            if (gameState.isAnimating) return;
+
+            // 如果回看界面打开，不处理
+            if (gameState.backlogOpen) return;
+
+            // 如果正在场景转换中，不处理
+            if (gameState.inTransition) return;
+
+            // 更新当前位置
+            gameState.currentSceneIndex = sceneIndex;
+
+            // 获取当前场景
+            const currentScene = gameData.scenes[sceneIndex];
+            if (!currentScene) return;
+
+            // 如果是BGM标记
+            if (currentScene.isMarker) {
+                // 如果有BGM，播放BGM
+                if (currentScene.bgm) {
+                    playBGM(currentScene.bgm);
+                }
+
+                // 自动前进到下一个场景
+                advanceDialog();
+                return;
+            }
+
+            // 检查当前场景和前一个场景的背景是否相同
+            const needBackgroundChange = sceneIndex === 0 ||
+                !gameData.scenes[sceneIndex - 1].bg ||
+                currentScene.bg !== gameData.scenes[sceneIndex - 1].bg;
+
+            // 处理清除角色的特殊情况
+            if (currentScene.characters && 
+                currentScene.characters.length === 1 && 
+                currentScene.characters[0].sprite === '-') {
+                // 清空所有角色
+                currentSceneCharacters = [];
+                activeCharacterNames = [];
+                updateCharacters([]);
+            } 
+            // 处理正常角色逻辑
+            else if (currentScene.characters && currentScene.characters.length > 0) {
+                // 获取当前对话中的角色名
+                const currentSpeakerName = currentScene.name;
+                
+                // 检查是否是手机未全屏状态
+                const isMobileNotFullscreen = isMobileDevice() && !gameState.isFullscreen;
+                
+                // 如果是手机未全屏状态，只考虑当前说话角色
+                if (isMobileNotFullscreen) {
+                    if (currentSpeakerName && currentSpeakerName !== "") {
+                        // 找到当前说话角色在立绘数组中的位置
+                        const speakerIndex = activeCharacterNames.indexOf(currentSpeakerName);
+                        
+                        if (speakerIndex !== -1) {
+                            // 角色已存在，可能需要更新立绘
+                            const newSpriteUrl = currentScene.characters[0].sprite;
+                            
+                            // 如果立绘URL不同，更新立绘
+                            if (currentSceneCharacters[speakerIndex].sprite !== newSpriteUrl) {
+                                currentSceneCharacters[speakerIndex].sprite = newSpriteUrl;
+                            }
+                        } else {
+                            // 新角色，直接添加
+                            activeCharacterNames.push(currentSpeakerName);
+                            currentSceneCharacters.push({...currentScene.characters[0], position: 'center'});
+                        }
+                        
+                        // 强制更新角色显示
+                        forceUpdateCharacterPositions();
+                    }
+                } else {
+                    // 电脑端或手机全屏的多角色逻辑
+                    // 如果是有名字的角色
+                    if (currentSpeakerName && currentSpeakerName !== "") {
+                        // 找到当前说话角色在立绘数组中的位置
+                        const speakerIndex = activeCharacterNames.indexOf(currentSpeakerName);
+                        
+                        if (speakerIndex !== -1) {
+                            // 该角色已经在场，更新其立绘
+                            // 获取新的立绘URL
+                            const newSpriteUrl = currentScene.characters[0].sprite;
+                            
+                            // 检查立绘是否变化
+                            if (currentSceneCharacters[speakerIndex].sprite !== newSpriteUrl) {
+                                // 立绘变化，使用优化的立绘更新函数
+                                updateCharacterSprite(currentSpeakerName, newSpriteUrl);
+                            }
+                        } else {
+                            // 新角色入场，检查是否已经有其他角色
+                            const hasExistingCharacters = currentSceneCharacters.length > 0;
+                            
+                            // 将新角色添加到列表
+                            activeCharacterNames.push(currentSpeakerName);
+                            currentSceneCharacters.push({...currentScene.characters[0]});
+                            
+                            // 进行直接的DOM操作，强制立即更新位置
+                            forceUpdateCharacterPositions();
+                        }
+                    }
+                }
+            }
+
+            // 如果需要更换背景
+            if (needBackgroundChange) {
+                // 清空当前角色列表，因为背景变化通常意味着场景转换
+                currentSceneCharacters = [];
+                activeCharacterNames = [];
+                
+                // 如果当前场景有新角色，添加到角色列表
+                if (currentScene.characters && currentScene.characters.length > 0 && 
+                    currentScene.characters[0].sprite !== '-') {
+                    
+                    // 检查是否是手机未全屏状态
+                    const isMobileNotFullscreen = isMobileDevice() && !gameState.isFullscreen;
+                    
+                    // 如果是手机未全屏状态且有角色名，只添加当前说话者
+                    if (isMobileNotFullscreen && currentScene.name && currentScene.name !== "") {
+                        activeCharacterNames = [currentScene.name];
+                        currentSceneCharacters = [{...currentScene.characters[0], position: 'center'}];
+                    } else {
+                        // 电脑端或手机全屏，应用自动位置调整
+                        currentSceneCharacters = autoAdjustCharacterPositions([...currentScene.characters]);
+                        
+                        // 更新角色名列表
+                        if (currentScene.name && currentScene.name !== "") {
+                            activeCharacterNames = [currentScene.name];
+                        }
+                    }
+                }
+                
+                // 更换背景
+                changeBackground(currentScene.bg);
+
+                // 检查是否需要更改背景音乐
+                if (currentScene.bgm) {
+                    playBGM(currentScene.bgm);
+                }
+
+                // 检查是否需要播放音效
+                if (currentScene.sfx) {
+                    playSFX(currentScene.sfx);
+                }
+            } else {
+                // 不需要更换背景，直接开始对话动画
+                startDialogAnimation();
+            }
+
+            // 自动保存状态
+            stateManager.saveGameState();
+        }
+
+        // 强制更新角色位置 - 添加简约特效但立即生效，确保角色比例一致
+        function forceUpdateCharacterPositions() {
+            // 首先使用autoAdjustCharacterPositions函数来确定每个角色的正确位置
+            currentSceneCharacters = autoAdjustCharacterPositions([...currentSceneCharacters]);
+            
+            // 获取DOM中的角色容器
+            const characterContainer = document.getElementById('characterContainer');
+            
+            // 检查是否是手机未全屏状态
+            const isMobileNotFullscreen = isMobileDevice() && !gameState.isFullscreen;
+            
+            // 保存当前角色数量，用于确定是否有新角色加入
+            const isNewCharacterAdded = currentSceneCharacters.length > 1 && 
+                                       characterContainer.querySelectorAll('.character').length < currentSceneCharacters.length;
+            
+            // 清空容器，完全重建所有角色元素
+            characterContainer.innerHTML = '';
+            
+            // 如果是手机未全屏状态，只显示当前说话者
+            if (isMobileNotFullscreen && currentSceneCharacters.length > 0) {
+                // 获取当前场景，找出当前说话者
+                const currentScene = gameData.scenes[gameState.currentSceneIndex];
+
+                // 如果当前场景有说话者
+                if (currentScene && currentScene.name && currentScene.name !== "") {
+                    // 查找当前说话者在角色列表中的索引
+                    const speakerIndex = activeCharacterNames.indexOf(currentScene.name);
+                    
+                    // 如果找到说话者
+                    if (speakerIndex !== -1 && speakerIndex < currentSceneCharacters.length) {
+                        // 只显示当前说话者
+                        const char = currentSceneCharacters[speakerIndex];
+                        
+                        // 创建角色元素
+                        const charElement = document.createElement('img');
+                        charElement.src = char.sprite;
+                        
+                        // 使用特殊的手机居中类，确保立绘在正中央
+                        charElement.className = `character mobile-center`;
+                        
+                        // 直接设置样式确保居中
+                        charElement.style.position = 'absolute';
+                        charElement.style.left = '50%';
+                        charElement.style.transform = 'translateX(-50%)';
+                        charElement.style.zIndex = '10';
+                        
+                        // 设置为立即可见
+                        charElement.style.opacity = '1';
+                        charElement.classList.add('active');
+                        
+                        // 添加淡入特效
+                        charElement.classList.add('subtle-entry');
+                        
+                        // 添加到容器
+                        characterContainer.appendChild(charElement);
+                    }
+                }
+            } else {
+                // 电脑端或手机全屏模式：显示所有角色
+                // 为每个角色创建新的DOM元素
+                for (let i = 0; i < currentSceneCharacters.length; i++) {
+                    const char = currentSceneCharacters[i];
+                    
+                    // 创建新的角色元素
+                    const charElement = document.createElement('img');
+                    charElement.src = char.sprite;
+                    
+                    // 所有位置使用相同的缩放比例0.95
+                    charElement.className = `character ${char.position}`;
+                    
+                    // 设置为立即可见
+                    charElement.style.opacity = '1';
+                    charElement.classList.add('active');
+                    
+                    // 根据角色位置和是否新加入添加适当的特效
+                    if (isNewCharacterAdded) {
+                        // 如果是新添加的角色并且在右侧，添加入场特效
+                        if (i === currentSceneCharacters.length - 1 && char.position === 'right') {
+                            charElement.classList.add('subtle-entry');
+                        }
+                        // 如果是已有角色并移动到左侧，添加位置调整特效
+                        else if (i === 0 && char.position === 'left') {
+                            charElement.classList.add('shift-left');
+                        }
+                    }
+                    
+                    // 添加到容器
+                    characterContainer.appendChild(charElement);
+                }
+            }
+        }
+
+        // 更新角色立绘 - 优化立绘切换
+        function updateCharacters(characters) {
+            const characterContainer = document.getElementById('characterContainer');
+            const currentCharacters = Array.from(characterContainer.querySelectorAll('.character'));
+
+            // 处理空数组情况
+            if (!characters || characters.length === 0) {
+                // 平滑淡出所有角色
+            currentCharacters.forEach(char => {
+                    char.style.opacity = '0';
+                    char.style.transition = 'opacity 0.5s ease';
+            });
+
+                // 延迟移除DOM元素
+            setTimeout(() => {
+                while (characterContainer.firstChild) {
+                    characterContainer.removeChild(characterContainer.firstChild);
+                }
+                }, 500);
+                return;
+            }
+
+            // 为新角色的位置添加预设值
+            const characterPositions = [];
+            for (let i = 0; i < characters.length; i++) {
+                const char = characters[i];
+                let desiredPosition = char.position;
+                
+                // 确保每个角色有合适的位置
+                if (characters.length === 1) {
+                    desiredPosition = 'center';
+                } else if (characters.length === 2) {
+                    desiredPosition = i === 0 ? 'left' : 'right';
+                } else {
+                    if (i === 0) desiredPosition = 'left';
+                    else if (i === 1) desiredPosition = 'center';
+                    else desiredPosition = 'right';
+                }
+                
+                characterPositions.push(desiredPosition);
+            }
+
+            // 映射当前DOM中的角色
+            const characterElements = [];
+            const urlToElement = {};
+            
+            currentCharacters.forEach(element => {
+                const url = element.src;
+                urlToElement[url] = element;
+                characterElements.push({
+                    url: url,
+                    element: element
+                });
+            });
+            
+            // 更新、添加和移除角色元素
+            for (let i = 0; i < characters.length; i++) {
+                const char = characters[i];
+                const position = characterPositions[i];
+                const existingElement = urlToElement[char.sprite];
+                
+                if (existingElement) {
+                    // 更新已有元素的位置
+                    existingElement.classList.remove('left', 'center', 'right');
+                    existingElement.classList.add(position);
+                    
+                    // 确保元素可见
+                    if (!existingElement.classList.contains('active')) {
+                        existingElement.classList.add('active');
+                    }
+                    
+                    // 从待处理列表中移除
+                    delete urlToElement[char.sprite];
+                } else {
+                    // 创建新元素
+                    const newElement = document.createElement('img');
+                    newElement.src = char.sprite;
+                    newElement.className = `character ${position}`;
+                    characterContainer.appendChild(newElement);
+
+                    // 使用淡入效果
+                    requestAnimationFrame(() => {
+                        newElement.classList.add('fade-in');
+                    setTimeout(() => {
+                            newElement.classList.remove('fade-in');
+                            newElement.classList.add('active');
+                        }, 500);
+                    });
+                }
+            }
+            
+            // 移除不再需要的元素
+            Object.values(urlToElement).forEach(element => {
+                element.classList.add('fade-out');
+                element.classList.remove('active');
+                
+                setTimeout(() => {
+                    if (element.parentNode === characterContainer) {
+                        characterContainer.removeChild(element);
+                    }
+                }, 500);
+            });
+            
+            // 更新角色位置信息
+            for (let i = 0; i < characters.length; i++) {
+                characters[i].position = characterPositions[i];
+            }
+        }
+
+        // 更新特定角色的立绘（无位置变化的情况）- 优化过渡效果
+        function updateCharacterSprite(characterName, newSprite, position) {
+            // 找到对应角色在数组中的索引
+            const charIndex = activeCharacterNames.indexOf(characterName);
+            if (charIndex === -1) return; // 角色不存在
+            
+            const characterContainer = document.getElementById('characterContainer');
+            const currentCharacterElements = Array.from(characterContainer.querySelectorAll('.character'));
+            
+            // 查找与当前角色匹配的DOM元素
+            const matchingElements = [];
+            currentCharacterElements.forEach((element, index) => {
+                // 查找匹配的角色立绘
+                if (element.src === currentSceneCharacters[charIndex].sprite) {
+                    matchingElements.push({element, index});
+                }
+            });
+            
+            // 如果找到了对应的DOM元素
+            if (matchingElements.length > 0) {
+                // 使用第一个匹配的元素
+                const {element: charElement} = matchingElements[0];
+                
+                // 获取当前位置
+                const currentPosition = charElement.classList.contains('left') ? 'left' :
+                                       charElement.classList.contains('right') ? 'right' : 'center';
+                
+                // 创建一个新元素来替换旧元素，但使用相同的位置
+                const newCharElement = document.createElement('img');
+                newCharElement.src = newSprite;
+                newCharElement.className = `character ${position || currentPosition} crossfade`;
+                
+                // 设置初始样式
+                if (currentPosition === 'center') {
+                    newCharElement.style.left = '50%';
+                    newCharElement.style.transform = 'translateX(-50%) scale(0.95)';
+                } else if (currentPosition === 'left') {
+                    newCharElement.style.left = '10%';
+                    newCharElement.style.transform = 'scale(0.95)';
+                } else if (currentPosition === 'right') {
+                    newCharElement.style.right = '10%';
+                    newCharElement.style.transform = 'scale(0.95)';
+                }
+                
+                // 添加到容器
+                characterContainer.appendChild(newCharElement);
+                
+                // 淡入新元素，淡出旧元素
+                setTimeout(() => {
+                    newCharElement.style.opacity = '1';
+                    charElement.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        newCharElement.classList.remove('crossfade');
+                        newCharElement.classList.add('active');
+                        
+                        if (charElement.parentNode === characterContainer) {
+                            characterContainer.removeChild(charElement);
+                        }
+                    }, 500);
+                }, 20);
+                
+                // 更新角色数组中的立绘
+                currentSceneCharacters[charIndex].sprite = newSprite;
+                
+                // 移除多余的相同角色立绘
+                if (matchingElements.length > 1) {
+                    for (let i = 1; i < matchingElements.length; i++) {
+                        const {element: redundantElement} = matchingElements[i];
+                        redundantElement.style.opacity = '0';
+                        setTimeout(() => {
+                            if (redundantElement.parentNode === characterContainer) {
+                                characterContainer.removeChild(redundantElement);
+                            }
+                        }, 500);
+                    }
+                }
+            }
+        }
+
+        // 自动调整角色位置函数
+        function autoAdjustCharacterPositions(characters) {
+            if (!characters || characters.length === 0) {
+                return [];
+            }
+            
+            // 创建深度副本以避免修改原始数组
+            const adjustedCharacters = characters.map(char => ({...char}));
+            
+            // 简化逻辑：根据角色数量直接分配固定位置
+            if (adjustedCharacters.length === 1) {
+                // 单个角色居中显示
+                adjustedCharacters[0].position = 'center';
+            } else if (adjustedCharacters.length === 2) {
+                // 两个角色分别放在左右两侧，无论之前位置如何
+                adjustedCharacters[0].position = 'left';
+                adjustedCharacters[1].position = 'right';
+            } else if (adjustedCharacters.length === 3) {
+                // 三个角色分别放置在左中右三个位置
+                adjustedCharacters[0].position = 'left';
+                adjustedCharacters[1].position = 'center';
+                adjustedCharacters[2].position = 'right';
+            } else if (adjustedCharacters.length > 3) {
+                // 超过三个角色，只显示前三个，分别放在左中右
+                adjustedCharacters[0].position = 'left';
+                adjustedCharacters[1].position = 'center';
+                adjustedCharacters[2].position = 'right';
+                // 多余的角色不显示或可以考虑其他处理方法
+            }
+            
+            return adjustedCharacters;
+        }
+
+        // 处理点击事件
+        function handleClick(event) {
+            // 如果点击的是控制按钮或设置面板，不处理
+            if (event.target.closest('.vn-game-menu') ||
+                event.target.closest('.settings-panel') ||
+                event.target.closest('.backlog-container') ||
+                event.target.closest('.vn-backlog-button') ||
+                event.target.closest('.vn-save-button') ||
+                event.target.closest('.vn-dialog-text-container')) { // 添加对文本容器的判断，允许滚动
+                return;
+            }
+
+            // 如果回看界面打开，关闭回看
+            if (gameState.backlogOpen) {
+                closeBacklog();
+                return;
+            }
+
+            // 如果正在场景转换中，不处理点击
+            if (gameState.inTransition) {
+                return;
+            }
+
+            // 如果正在动画中，完成当前动画
+            if (gameState.isAnimating) {
+                skipDialogAnimation();
+                return;
+            }
+
+            // 播放点击音效
+            playClickSound();
+
+            // 前进到下一个对话
+            advanceDialog();
+        }
+
+        // 前进到下一个对话
+        function advanceDialog() {
+            const nextSceneIndex = gameState.currentSceneIndex + 1;
+
+            // 检查是否还有下一个对话
+            if (nextSceneIndex < gameData.scenes.length) {
+                showDialog(nextSceneIndex);
+            } else {
+                // 游戏结束 - 淡出BGM
+                if (gameState.isBGMPlaying) {
+                    fadeOutBGM();
+                    gameState.bgmState = "stopped";
+                    // 自动保存状态
+                    stateManager.saveGameState();
+                }
+                // 移除了游戏结束提示
+            }
+        }
+
+        // 播放点击音效
+        function playClickSound() {
+            const clickSound = document.getElementById('vnClickSound');
+            clickSound.volume = gameState.soundVolume;
+            clickSound.currentTime = 0;
+            clickSound.play();
+        }
+
+        // 初始化游戏控制按钮
+        function initGameControls() {
+            // 重置按钮
+            document.getElementById('vnResetButton').addEventListener('click', resetGame);
+
+            // 自动播放按钮
+            document.getElementById('vnAutoButton').addEventListener('click', toggleAutoMode);
+
+            // 设置按钮
+            document.getElementById('vnSettingsButton').addEventListener('click', showSettings);
+
+            // 回看按钮
+            document.getElementById('vnBacklogButton').addEventListener('click', showBacklog);
+
+            // 保存按钮
+            document.getElementById('vnSaveButton').addEventListener('click', function() {
+                playClickSound();
+                stateManager.saveGameState();
+            });
+        }
+
+        // 重置游戏
+        function resetGame() {
+            playClickSound();
+
+            // 暂停自动模式
+            if (gameState.autoMode) {
+                toggleAutoMode();
+            }
+
+            // 重置游戏状态
+            if (stateManager.resetGameState()) {
+                // 重新显示第一个场景
+                showDialog(0);
+
+                // 播放第一个BGM
+                const firstBgmScene = gameData.scenes.find(scene => scene.bgm && scene.isMarker);
+                if (firstBgmScene && firstBgmScene.bgm) {
+                    playBGM(firstBgmScene.bgm);
+                }
+            }
+        }
+
+        // 切换自动模式
+        function toggleAutoMode() {
+            playClickSound();
+            gameState.autoMode = !gameState.autoMode;
+
+            // 更新按钮样式和图片
+            const autoButton = document.getElementById('vnAutoButton');
+            if (gameState.autoMode) {
+                // 切换到激活状态图片
+                autoButton.classList.add('active');
+
+                // 如果当前对话已经显示完，自动进入下一个对话
+                if (!gameState.isAnimating && !gameState.inTransition) {
+                    setTimeout(() => {
+                        advanceDialog();
+                    }, autoModeDelay);
+                }
+            } else {
+                // 切换回非激活状态图片
+                autoButton.classList.remove('active');
+            }
+        }
+
+        // 显示设置面板
+        function showSettings() {
+            playClickSound();
+            const settingsPanel = document.getElementById('settingsPanel');
+            settingsPanel.style.display = 'flex';
+
+            // 更新设置面板中的音量滑块
+            document.getElementById('bgmVolume').value = gameState.bgmVolume * 100;
+            document.getElementById('soundVolume').value = gameState.soundVolume * 100;
+
+            // 更新全屏按钮图标
+            updateFullscreenIcon();
+        }
+
+        // 关闭设置面板
+        function closeSettingsPanel() {
+            document.getElementById('settingsPanel').style.display = 'none';
+            playClickSound();
+        }
+
+        // 保存设置
+        function saveSettings() {
+            // 获取滑块的当前值
+            gameState.bgmVolume = document.getElementById('bgmVolume').value / 100;
+            gameState.soundVolume = document.getElementById('soundVolume').value / 100;
+
+            // 应用音量设置
+            const bgm = document.getElementById('vnBGM');
+            const sfx = document.getElementById('vnSFX');
+
+            if (bgm && !gameState.bgmFadingOut) bgm.volume = gameState.bgmVolume;
+            if (sfx && gameState.sfxPlaying) sfx.volume = gameState.soundVolume;
+
+            // 保存设置到localStorage
+            stateManager.saveGameState();
+
+            // 关闭设置面板
+            closeSettingsPanel();
+
+            // 播放点击音效
+            playClickSound();
+        }
+
+        // 更新音量设置
+        function updateVolumeSettings() {
+            // 初始化音量滑块
+            document.getElementById('bgmVolume').value = gameState.bgmVolume * 100;
+            document.getElementById('soundVolume').value = gameState.soundVolume * 100;
+
+            // 添加音量滑块的事件监听
+            document.getElementById('bgmVolume').addEventListener('input', function() {
+                gameState.bgmVolume = this.value / 100;
+                const bgm = document.getElementById('vnBGM');
+                if (bgm && !gameState.bgmFadingOut) bgm.volume = gameState.bgmVolume;
+            });
+
+            document.getElementById('soundVolume').addEventListener('input', function() {
+                gameState.soundVolume = this.value / 100;
+                const sfx = document.getElementById('vnSFX');
+                if (sfx && gameState.sfxPlaying) sfx.volume = gameState.soundVolume;
+            });
+        }
+
+        // 检测设备类型
+        function isDeviceMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // 更新全屏按钮图标
+        function updateFullscreenIcon() {
+            const fullscreenIcon = document.getElementById('fullscreenIcon');
+            if (fullscreenIcon) {
+                fullscreenIcon.src = gameState.isFullscreen ?
+                    'https://files.catbox.moe/7uvf13.png' :
+                    'https://files.catbox.moe/x73w1m.png';
+            }
+        }
+
+        // 更新全屏按钮状态
+        function updateFullscreenButtonState() {
+            // 如果是PC端，隐藏设置中的全屏选项
+            if (!isDeviceMobile()) {
+                const fullscreenOption = document.querySelector('.fullscreen-option');
+                if (fullscreenOption) {
+                    fullscreenOption.style.display = 'none';
+                }
+            } else {
+                // 显示全屏选项
+                const fullscreenOption = document.querySelector('.fullscreen-option');
+                if (fullscreenOption) {
+                    fullscreenOption.style.display = 'block';
+                }
+            }
+
+            // 更新全屏按钮图标
+            updateFullscreenIcon();
+            updateQuickFullscreenIcon();
+        }
+
+        // 切换全屏模式
+        function toggleFullscreen() {
+            const gameContainer = document.getElementById('vnGameContainer');
+
+            if (!gameState.isFullscreen) {
+                // 进入全屏模式
+                gameContainer.classList.add('landscape-fullscreen');
+
+                // PC端和移动端使用不同的全屏请求方式
+                if (isDeviceMobile()) {
+                    // 移动设备全屏请求
+                    if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen();
+                    } else if (document.documentElement.webkitRequestFullscreen) {
+                        document.documentElement.webkitRequestFullscreen();
+                    } else if (document.documentElement.msRequestFullscreen) {
+                        document.documentElement.msRequestFullscreen();
+                    }
+
+                    // 请求横屏
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(function(error) {
+                            console.log('无法锁定横屏: ', error);
+                        });
+                    }
+                } else {
+                    // PC端全屏请求
+                    if (gameContainer.requestFullscreen) {
+                        gameContainer.requestFullscreen();
+                    } else if (gameContainer.webkitRequestFullscreen) {
+                        gameContainer.webkitRequestFullscreen();
+                    } else if (gameContainer.mozRequestFullScreen) {
+                        gameContainer.mozRequestFullScreen();
+                    } else if (gameContainer.msRequestFullscreen) {
+                        gameContainer.msRequestFullscreen();
+                    }
+                }
+
+                // 强制页面滚动到顶部
+                window.scrollTo(0, 0);
+            } else {
+                // 退出全屏模式
+                gameContainer.classList.remove('landscape-fullscreen');
+
+                // 退出设备全屏
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+
+                // 退出全屏时滚动到页面底部 - 增强效果
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'auto'
+                    });
+                }, 100);
+            }
+
+            gameState.isFullscreen = !gameState.isFullscreen;
+
+            // 更新全屏按钮图标和body类
+            updateFullscreenIcon();
+            updateQuickFullscreenIcon();
+            updateFullscreenBodyClass();
+
+            // 如果是从设置面板调用的，关闭设置面板
+            if (document.getElementById('settingsPanel').style.display === 'flex') {
+                closeSettingsPanel();
+            }
+        }
+
+        // 监听全屏状态变化
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        // 处理全屏变化
+        function handleFullscreenChange() {
+            // 检查当前是否处于全屏状态
+            const isNativeFullscreen = document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement ||
+                document.msFullscreenElement;
+
+            // 如果系统退出全屏但游戏状态仍是全屏模式
+            if (!isNativeFullscreen && gameState.isFullscreen) {
+                // 更新游戏状态
+                gameState.isFullscreen = false;
+
+                // 更新UI
+                const gameContainer = document.getElementById('vnGameContainer');
+                gameContainer.classList.remove('landscape-fullscreen');
+
+                // 更新全屏按钮图标
+                updateFullscreenIcon();
+                updateQuickFullscreenIcon();
+                updateFullscreenBodyClass();
+
+                // 更新角色显示
+                updateCharactersOnFullscreenChange();
+
+                // 退出全屏时滚动到页面底部
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'auto'
+                    });
+                }, 100);
+            }
+        }
+
+        // 特殊函数：立即更新角色位置，不使用渐变效果
+        function updateCharactersPositionImmediately(characters) {
+            const characterContainer = document.getElementById('characterContainer');
+            const currentCharacters = Array.from(characterContainer.querySelectorAll('.character'));
+            
+            // 如果没有角色需要更新，直接返回
+            if (!characters || characters.length === 0 || currentCharacters.length === 0) {
+                return;
+            }
+            
+            // 创建角色名称到DOM元素的映射
+            const characterNameToElement = {};
+            
+            // 遍历当前DOM中的角色元素，尝试匹配它们与角色名称
+            currentCharacters.forEach((element, index) => {
+                // 查找该元素对应的角色在activeCharacterNames中的索引
+                for (let i = 0; i < activeCharacterNames.length; i++) {
+                    if (currentSceneCharacters[i] && element.src === currentSceneCharacters[i].sprite) {
+                        characterNameToElement[activeCharacterNames[i]] = element;
+                        break;
+                    }
+                }
+            });
+            
+            // 遍历所有角色，立即更新它们的位置
+            for (let i = 0; i < characters.length; i++) {
+                const character = characters[i];
+                const characterName = activeCharacterNames[i];
+                const element = characterNameToElement[characterName];
+                
+                if (element) {
+                    // 移除所有位置类
+                    element.classList.remove('left', 'center', 'right');
+                    
+                    // 添加新位置类
+                    element.classList.add(character.position);
+                    
+                    // 确保角色可见
+                    if (!element.classList.contains('active')) {
+                        element.classList.add('active');
+                    }
+                }
+            }
+        }
+
+        // 判断是否是移动设备
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth < 768;
+        }
+
+        // 在全屏状态变化时更新角色位置
+        function updateCharactersOnFullscreenChange() {
+            // 使用延迟确保DOM已完全更新
+            setTimeout(() => {
+                forceUpdateCharacterPositions();
+            }, 300);
+        }
+    </script>
+</body>
+</html>
+```

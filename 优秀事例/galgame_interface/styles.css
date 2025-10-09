@@ -1,0 +1,123 @@
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+}
+
+body,
+html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #000;
+}
+
+/* 游戏容器样式 */
+#game-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CG图片容器样式 */
+#cg-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#background-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.8s ease;
+}
+
+/* 对话框样式 */
+#dialog-box {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 1000px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 20px 30px;
+  color: #fff;
+  z-index: 10;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* 角色名称样式 */
+#character-name {
+  font-size: 22px;
+  font-weight: bold;
+  color: #FFD700;
+  margin-bottom: 10px;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+}
+
+/* 对话文本样式 */
+#dialog-text {
+  font-size: 20px;
+  line-height: 1.6;
+  min-height: 80px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+  letter-spacing: 1px;
+}
+
+/* 下一步提示样式 */
+#next-hint {
+  text-align: right;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  #dialog-box {
+    width: 95%;
+    padding: 15px 20px;
+    bottom: 20px;
+  }
+
+  #character-name {
+    font-size: 18px;
+  }
+
+  #dialog-text {
+    font-size: 16px;
+    min-height: 60px;
+  }
+
+  #next-hint {
+    font-size: 14px;
+  }
+}

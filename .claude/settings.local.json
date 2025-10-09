@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run:*)",
+      "Bash(mkdir:*)",
+      "Bash(dir:*)",
+      "Bash(python -c \"import json; data = json.load(open(''蔚蓝档案-铁道双子篇.json'', ''r'', encoding=''utf-8'')); content = data[''content'']; lines = content.split(''\\n''); start = [i for i, l in enumerate(lines) if ''setupGameEvents'' in l or ''function.*Action'' in l or ''gsap'' in l]; print(''\\n''.join([str(i) + '': '' + lines[i] for i in start[:20]]))\")",
+      "Bash(python -c \"import json; data = json.load(open(''蔚蓝档案-铁道双子篇.json'', ''r'', encoding=''utf-8'')); content = data[''content'']; lines = content.split(''\\n''); start = [i for i, l in enumerate(lines) if ''function executeAction'' in l or ''async function executeAction'' in l]; print(''Found at lines:'', start); print(''\\n''.join([f''{i}: {lines[i]}'' for i in range(start[0] if start else 1000, min((start[0] if start else 1000) + 150, len(lines)))]))\")",
+      "Bash(python -c \"import json; data = json.load(open(''蔚蓝档案-铁道双子篇.json'', ''r'', encoding=''utf-8'')); content = data[''content'']; lines = content.split(''\\n''); start = [i for i, l in enumerate(lines) if ''@keyframes shake'' in l or ''shake-light'' in l]; print(''Found shake keyframes at lines:'', start[:10]); print(''\\n''.join([f''{i}: {lines[i]}'' for i in range(start[0] if start else 500, min((start[0] if start else 500) + 50, len(lines)))]))\")",
+      "Bash(python:*)",
+      "Bash(del ControlPanel.vue)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

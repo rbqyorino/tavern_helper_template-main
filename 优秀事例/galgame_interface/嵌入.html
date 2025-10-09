@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="iframe-content" content="true">
+  <title>美丽时光 - Galgame</title>
+  <style>
+    /* 嵌入iframe环境样式 */
+    .iframe-content {
+      width: 100% !important;
+      height: 800px !important;
+      /* 增加固定高度并添加!important */
+      min-height: 800px !important;
+      /* 增加最小高度并添加!important */
+      position: relative !important;
+      overflow: hidden !important;
+      /* 修改为hidden，隐藏滚动条 */
+    }
+
+    /* 全局样式重置 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+      scrollbar-width: none !important;
+      /* Firefox */
+    }
+
+    /* 隐藏滚动条 */
+    ::-webkit-scrollbar {
+      width: 0 !important;
+      display: none !important;
+    }
+
+    body,
+    html {
+      width: 100% !important;
+      height: 800px !important;
+      min-height: 800px !important;
+      overflow: hidden !important;
+      /* 修改为hidden，隐藏滚动条 */
+      background-color: #000;
+      margin: 0 !important;
+      padding: 0 !important;
+      -ms-overflow-style: none !important;
+      /* IE and Edge */
+      scrollbar-width: none !important;
+      /* Firefox */
+    }
+
+    /* 游戏容器样式 */
+    #game-container {
+      position: relative !important;
+      width: 100% !important;
+      height: 800px !important;
+      /* 增加固定高度并添加!important */
+      min-height: 800px !important;
+      /* 增加最小高度并添加!important */
+      display: flex !important;
+      flex-direction: column !important;
+    }
+
+    /* CG图片容器样式 */
+    #cg-container {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 750px !important;
+      /* 略微减小高度以确保对话框能完整显示 */
+      min-height: 750px !important;
+      z-index: 1 !important;
+    }
+
+    #background-image {
+      width: 100% !important;
+      height: 750px !important;
+      /* 设置较大的固定高度 */
+      min-height: 750px !important;
+      /* 设置较大的最小高度 */
+      object-fit: cover !important;
+      transition: opacity 0.8s ease !important;
+    }
+
+    /* 对话框样式 */
+    #dialog-box {
+      position: absolute !important;
+      bottom: 30px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 90% !important;
+      max-width: 1000px !important;
+      min-height: 180px !important;
+      background: rgba(0, 0, 0, 0.7) !important;
+      backdrop-filter: blur(8px) !important;
+      border-radius: 12px !important;
+      padding: 20px 30px !important;
+      color: #fff !important;
+      z-index: 10 !important;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      transition: transform 0.3s ease, opacity 0.3s ease !important;
+    }
+
+    /* 角色名称样式 */
+    #character-name {
+      font-size: 22px;
+      font-weight: bold;
+      color: #FFD700;
+      margin-bottom: 10px;
+      text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+    }
+
+    /* 对话文本样式 */
+    #dialog-text {
+      font-size: 20px;
+      line-height: 1.6;
+      min-height: 80px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+      letter-spacing: 1px;
+    }
+
+    /* 下一步提示样式 */
+    #next-hint {
+      text-align: right;
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.7);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.4;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.4;
+      }
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      #dialog-box {
+        width: 95%;
+        padding: 15px 20px;
+        bottom: 20px;
+      }
+
+      #character-name {
+        font-size: 18px;
+      }
+
+      #dialog-text {
+        font-size: 16px;
+        min-height: 60px;
+      }
+
+      #next-hint {
+        font-size: 14px;
+      }
+    }
+
+    /* SillyTavern iframe修复 */
+    iframe#embedded-content {
+      min-height: 800px !important;
+      height: 100vh !important;
+    }
+
+    /* 悬浮按钮样式 */
+    #toggle-ui-btn {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      width: 40px !important;
+      height: 40px !important;
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
+      border-radius: 50% !important;
+      color: white !important;
+      font-size: 18px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      z-index: 9999 !important;
+      transition: all 0.3s ease !important;
+      opacity: 0.7 !important;
+    }
+
+    #toggle-ui-btn:hover {
+      background-color: rgba(0, 0, 0, 0.8) !important;
+      transform: scale(1.1) !important;
+      opacity: 1 !important;
+    }
+
+    /* 当UI隐藏时的样式 */
+    body.ui-hidden #dialog-box {
+      display: none !important;
+    }
+
+    body.ui-hidden #toggle-ui-btn {
+      background-color: rgba(255, 100, 100, 0.5) !important;
+    }
+  </style>
+  <!-- 添加SillyTavern专用样式 -->
+  <style id="sillytavern-iframe-fix">
+    /* SillyTavern中嵌入iframe的专用修复样式 */
+    html,
+    body,
+    .iframe-content,
+    #game-container,
+    #cg-container,
+    #background-image {
+      height: 100vh !important;
+      min-height: 800px !important;
+      max-height: none !important;
+    }
+
+    /* 确保对话框始终在底部 */
+    #dialog-box {
+      position: fixed !important;
+      bottom: 50px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 9999 !important;
+    }
+
+    /* SillyTavern iframe修复 */
+    iframe#embedded-content {
+      min-height: 800px !important;
+      height: 100vh !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="iframe-content">
+    <div id="game-container">
+      <!-- 背景CG图片区域 -->
+      <div id="cg-container">
+        <img id="background-image" src="" alt="背景CG">
+      </div>
+
+      <!-- 对话框区域 -->
+      <div id="dialog-box">
+        <div id="character-name">角色名称</div>
+        <div id="dialog-text">这里是对话内容...</div>
+        <div id="next-hint">点击或按空格继续 ▼</div>
+      </div>
+
+      <!-- 添加切换UI显示的按钮 -->
+      <div id="toggle-ui-btn" title="显示/隐藏界面">UI</div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Galgame界面核心功能
+     * 提供简单的对话显示和点击/空格下一步功能
+     */
+
+    class GalgameEngine {
+      constructor() {
+        this.currentIndex = 0;
+        this.isAnimating = false;
+
+        // 获取DOM元素
+        this.dialogBox = document.getElementById('dialog-box');
+        this.characterName = document.getElementById('character-name');
+        this.dialogText = document.getElementById('dialog-text');
+        this.backgroundImage = document.getElementById('background-image');
+
+        // ===== 第一处可自定义：CG图片链接 =====
+        // 在这里添加您的CG图片URL数组
+        // 可以添加任意数量的图片链接
+        // 注意: URL需要是可以直接访问的图片地址
+        const cgUrls = [
+          // 示例格式：
+          // 'https://example.com/image1.jpg',
+          // 'https://example.com/image2.jpg',
+          // 'https://example.com/image3.jpg',
+          'https://gitgud.io/lolodesu/lolobabytutorial/-/raw/master/lologame/hcg/%E5%B7%B7%E5%AD%90%E5%85%A8%E8%A3%B8%E6%AD%A3%E9%9D%A2M%E8%85%BF.png?ref_type=heads',
+          'https://gitgud.io/lolodesu/lolobabytutorial/-/raw/master/lologame/hcg/%E5%B7%B7%E5%AD%90%E6%89%B6%E5%A2%99%E5%90%8E%E5%85%A51.png?ref_type=heads'
+        ];
+
+        // ===== 第二处可自定义：对话内容 =====
+        // 在这里添加您的对话数据数组
+        // 每条对话包含三个属性：
+        // - name: 说话角色的名字
+        // - text: 对话内容
+        // - image: 对应的CG图片URL（使用上面cgUrls数组中的图片地址）
+        // 可以添加任意数量的对话
+        this.dialogData = [
+          // 示例格式：
+          // { name: '角色名称', text: '对话内容', image: cgUrls[0] },
+          // { name: '另一个角色', text: '另一段对话', image: cgUrls[1] },
+          { name: '巷子', text: '呼...终于找到了这个地方...', image: cgUrls[0] },
+          { name: '巷子', text: '没想到你会叫我来这种偏僻的地方呢...', image: cgUrls[0] },
+          { name: '你', text: '我想找一个不会被打扰的地方。', image: cgUrls[0] },
+          { name: '巷子', text: '是吗...那你想做什么呢？', image: cgUrls[0] },
+          { name: '你', text: '你知道的...', image: cgUrls[0] },
+          { name: '巷子', text: '啊...这样啊...', image: cgUrls[1] },
+          { name: '巷子', text: '其实我也想要这样...', image: cgUrls[1] },
+          { name: '巷子', text: '只要是你的话...', image: cgUrls[1] },
+          { name: '你', text: '那我们开始吧...', image: cgUrls[1] },
+          { name: '巷子', text: '嗯...请温柔一点...', image: cgUrls[1] },
+        ];
+
+        // 初始化事件监听
+        this.initEventListeners();
+
+        // 显示第一条对话
+        this.showDialog(0);
+      }
+
+      initEventListeners() {
+        // 点击屏幕任意位置进入下一步
+        document.addEventListener('click', () => {
+          this.nextDialog();
+        });
+
+        // 按空格键进入下一步
+        document.addEventListener('keydown', (event) => {
+          if (event.code === 'Space') {
+            event.preventDefault();
+            this.nextDialog();
+          }
+        });
+      }
+
+      showDialog(index) {
+        if (index >= this.dialogData.length) {
+          // 对话结束，可以添加结束画面或循环播放
+          this.currentIndex = 0;
+          this.showDialog(0);
+          return;
+        }
+
+        const dialog = this.dialogData[index];
+
+        // 更新背景图片(如果有变化)
+        if (dialog.image && this.backgroundImage.src !== dialog.image) {
+          this.fadeOutIn(() => {
+            this.backgroundImage.src = dialog.image || '';
+          });
+        }
+
+        // 应用打字机效果
+        this.characterName.textContent = dialog.name;
+        this.applyTypingEffect(dialog.text);
+      }
+
+      nextDialog() {
+        // 如果正在动画中，则跳过打字效果直接显示全部文本
+        if (this.isAnimating) {
+          this.isAnimating = false;
+          const currentDialog = this.dialogData[this.currentIndex];
+          this.dialogText.textContent = currentDialog.text;
+          return;
+        }
+
+        // 否则，显示下一条对话
+        this.currentIndex++;
+        this.showDialog(this.currentIndex);
+      }
+
+      applyTypingEffect(text) {
+        this.isAnimating = true;
+        this.dialogText.textContent = '';
+
+        let i = 0;
+        const speed = 30; // 打字速度，可以调整
+
+        const typeWriter = () => {
+          if (i < text.length && this.isAnimating) {
+            this.dialogText.textContent += text.charAt(i);
+            i++;
+            setTimeout(typeWriter, speed);
+          } else {
+            this.isAnimating = false;
+          }
+        };
+
+        typeWriter();
+      }
+
+      fadeOutIn(callback) {
+        // 淡出
+        this.backgroundImage.style.opacity = '0';
+
+        // 等待淡出完成后执行回调并淡入
+        setTimeout(() => {
+          callback();
+          setTimeout(() => {
+            this.backgroundImage.style.opacity = '1';
+          }, 50);
+        }, 400);
+      }
+    }
+
+    // 当页面加载完成后初始化游戏引擎
+    window.addEventListener('DOMContentLoaded', () => {
+      new GalgameEngine();
+
+      // 处理iframe环境下的高度调整
+      function handleIframeResize() {
+        // 检测是否在iframe中
+        const isInIframe = window !== window.parent;
+        if (isInIframe) {
+          // 设置固定的较大高度，确保内容显示
+          document.body.style.height = "800px";
+          document.documentElement.style.height = "800px";
+
+          // 通知父窗口调整iframe高度
+          try {
+            if (window.parent && window.parent.postMessage) {
+              window.parent.postMessage({
+                type: 'resize-iframe',
+                height: 800  // 固定高度值
+              }, '*');
+            }
+          } catch (e) {
+            console.log("无法与父窗口通信");
+          }
+        }
+      }
+
+      // 处理UI显示/隐藏功能
+      function initToggleUIButton() {
+        const toggleBtn = document.getElementById('toggle-ui-btn');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', function (e) {
+            e.stopPropagation(); // 防止点击事件触发对话推进
+            document.body.classList.toggle('ui-hidden');
+
+            // 更新按钮文本
+            if (document.body.classList.contains('ui-hidden')) {
+              toggleBtn.textContent = "显";
+              toggleBtn.title = "显示界面";
+            } else {
+              toggleBtn.textContent = "隐";
+              toggleBtn.title = "隐藏界面";
+            }
+          });
+
+          // 设置初始状态
+          toggleBtn.textContent = "隐";
+          toggleBtn.title = "隐藏界面";
+        }
+      }
+
+      // SillyTavern专用脚本
+      function applySillyTavernFix() {
+        // 创建一个帮助函数，在父窗口中查找SillyTavern相关元素
+        try {
+          const isSillyTavern = window.parent &&
+            (window.parent.document.getElementById('embedded-content') ||
+              window.parent.document.querySelector('.mes_embed') ||
+              window.parent.document.querySelector('.embed-container'));
+
+          if (isSillyTavern) {
+            console.log("检测到SillyTavern环境，应用专用修复");
+
+            // 在父窗口中注入样式
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+              #embedded-content, .mes_embed, .embed-container {
+                height: 800px !important;
+                min-height: 800px !important;
+                max-height: none !important;
+                overflow: visible !important;
+              }
+            `;
+
+            try {
+              window.parent.document.head.appendChild(styleElement);
+            } catch (e) {
+              console.log("无法在父窗口中注入样式");
+            }
+
+            // 向父窗口发送高度调整消息
+            window.parent.postMessage({
+              type: 'ST-iframe-height',
+              height: 800
+            }, '*');
+          }
+        } catch (e) {
+          console.log("SillyTavern检测失败");
+        }
+      }
+
+      // 初始调整和窗口大小改变时调整
+      handleIframeResize();
+      window.addEventListener('resize', handleIframeResize);
+
+      // 初始化UI切换按钮
+      initToggleUIButton();
+
+      // 额外添加一个直接修改样式的方法，防止被覆盖
+      setTimeout(() => {
+        document.querySelector('.iframe-content').style.height = "800px";
+        document.querySelector('.iframe-content').style.minHeight = "800px";
+        document.querySelector('#game-container').style.height = "800px";
+        document.querySelector('#game-container').style.minHeight = "800px";
+
+        // 应用SillyTavern专用修复
+        applySillyTavernFix();
+      }, 500);
+    });
+  </script>
+</body>
+
+</html>
