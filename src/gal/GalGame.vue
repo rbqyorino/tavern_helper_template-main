@@ -22,19 +22,12 @@
 
     <!-- 角色立绘层 -->
     <div class="character-layer">
-      <div
-        v-for="pos in ['L1', 'L2', 'L3', 'L4']"
-        :key="pos"
-        :class="['character-slot', `position-${pos}`]"
-      >
+      <div v-for="pos in ['L1', 'L2', 'L3', 'L4']" :key="pos" :class="['character-slot', `position-${pos}`]">
         <transition name="fade">
           <img
             v-if="characters[pos]"
             :src="characters[pos]!.sprite"
-            :class="[
-              'character-sprite',
-              { active: characters[pos]!.isActive, inactive: !characters[pos]!.isActive },
-            ]"
+            :class="['character-sprite', { active: characters[pos]!.isActive, inactive: !characters[pos]!.isActive }]"
             :style="getCharacterStyle(pos)"
             alt="角色立绘"
           />
@@ -62,12 +55,7 @@
     <transition name="fade">
       <div v-if="choices.length > 0" class="choice-layer">
         <div class="choice-container">
-          <button
-            v-for="(choice, index) in choices"
-            :key="index"
-            class="choice-button"
-            @click="selectChoice(choice)"
-          >
+          <button v-for="(choice, index) in choices" :key="index" class="choice-button" @click="selectChoice(choice)">
             {{ choice }}
           </button>
         </div>
@@ -198,7 +186,7 @@ const playBgm = (bgmName: string) => {
   bgmAudio.loop = true;
   bgmAudio.volume = 0.5;
 
-  bgmAudio.play().catch((error) => {
+  bgmAudio.play().catch(error => {
     console.error('播放BGM失败:', error);
   });
 
@@ -229,7 +217,7 @@ const setCharacter = (
   position: 'L1' | 'L2' | 'L3' | 'L4',
   characterName: string,
   sprite: string | undefined,
-  isActive: boolean
+  isActive: boolean,
 ) => {
   if (!sprite) {
     characters.value[position] = undefined;
@@ -249,7 +237,7 @@ const setCharacter = (
 // 执行角色动作
 const performAction = (characterName: string, actionType: string) => {
   // 根据角色名称找到角色所在位置
-  const pos = Object.keys(characters.value).find((key) => {
+  const pos = Object.keys(characters.value).find(key => {
     const char = characters.value[key];
     return char !== undefined && char.name === characterName;
   });
@@ -341,7 +329,7 @@ const processLine = async (line: string) => {
   if (bg) {
     console.log('设置背景:', bg);
     setBackground(bg);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500));
     return true; // 继续处理下一行
   }
 
@@ -384,7 +372,7 @@ const processLine = async (line: string) => {
 
     if (dialogue.type === 'character') {
       // 设置所有角色为非激活状态
-      Object.keys(characters.value).forEach((pos) => {
+      Object.keys(characters.value).forEach(pos => {
         if (characters.value[pos]) {
           characters.value[pos]!.isActive = false;
         }
@@ -454,7 +442,10 @@ const nextLine = async () => {
 const handleMessage = async (message: string) => {
   console.log('处理消息内容:', message);
 
-  const lines = message.split('\n').map((l) => l.trim()).filter((l) => l);
+  const lines = message
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l);
   console.log('分解后的行数:', lines.length);
 
   // 存储所有行并重置索引
@@ -591,7 +582,9 @@ onUnmounted(() => {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: filter 0.3s ease, transform 0.3s ease;
+  transition:
+    filter 0.3s ease,
+    transform 0.3s ease;
 
   &.active {
     filter: brightness(1);

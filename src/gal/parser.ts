@@ -50,7 +50,10 @@ export class MessageParser {
     const match = text.match(/\[choice\|([^\]]+)\]/);
     if (!match) return undefined;
 
-    const choices = match[1].split('|').map(c => c.trim()).filter(c => c);
+    const choices = match[1]
+      .split('|')
+      .map(c => c.trim())
+      .filter(c => c);
     return choices.length > 0 ? choices : undefined;
   }
 
@@ -100,7 +103,10 @@ export class MessageParser {
 
   // 完整解析消息
   static parseMessage(text: string): ParsedMessage {
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    const lines = text
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l);
     const result: ParsedMessage = {};
 
     for (const line of lines) {
