@@ -1,0 +1,170 @@
+文字字体：
+@import url("https://fontsapi.zeoseven.com/285/main/result.css");
+
+body {
+    font-family: "Noto Serif CJK";
+    font-weight: normal;
+    /* font-feature-settings: "hwid"; 启用等宽变化字形 */
+}
+---
+
+任务：
+现在我想重新构建游戏的对话框界面。本代码里出现的背景、立绘都是游戏内的。图1是游戏的界面，其中对话框背景和名字框的地址会告诉你。
+
+总体功能描述：
+这个界面由一个大的主对话框和一个位于其左上角的名字框组成。名字框需要部分叠加在主对话框之上，并向上溢出，形成一种立体的层次感。
+资源清单：
+主对话框背景：
+图片地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.png
+尺寸: 1920x294
+名字框背景：
+图片地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/name.png
+尺寸: 313x88
+
+我希望背景跟随容器宽度自适应放大缩小。但是对话框的位置相对背景不变。
+同时我希望名字部分的设计目标是 醒目、突出、有立体感。可能有加粗的字重、清晰的描边、轻微的投影。对话内容的设计目标是 清晰易读、质感细腻。具有描边与投影、文字内部渐变。
+
+现在请你设计方案
+
+技术实现简要说明：
+HTML 结构：
+创建一个 div 作为最外层的容器，ID为 dialogue-container。
+在这个容器内部，创建两个子元素：
+一个 div 用于显示名字，ID为 name-box。里面再放一个 span 用来写名字文本，ID为 name-text。
+一个 div 用于显示对话内容，ID为 dialogue-text。
+CSS 样式 (核心部分):
+主对话框容器 (#dialogue-container):
+将其 background-image 设置为 mw01.png 的地址。
+设置其尺寸：width: 1920px; (或 100%)，height: 294px;。
+关键： 设置 position: relative;。这将把它变成名字框定位的“锚点”。
+为了演示，可以先用 position: fixed; bottom: 0; 将其固定在页面底部。
+名字框 (#name-box):
+将其 background-image 设置为 name.png 的地址。
+设置其尺寸：width: 313px;，height: 88px;。
+关键： 设置 position: absolute;。
+精确定位： 使用 top 和 left 属性来定位。
+left: 60px; (或你觉得合适的左边距)。
+top: -44px; (使用一个负值，大约是名字框自身高度的一半，这样它就能向上溢出，看起来像是“坐”在主对话框的顶边上)。
+文本样式：
+为 #name-text 和 #dialogue-text 设置合适的 padding，让文字不要紧贴边框。
+为它们设置清晰的字体颜色（比如白色或深灰色），并可以添加 text-shadow (文本阴影) 来增加在复杂背景下的可读性。
+
+
+你需要修改源代码并且构建项目
+
+
+
+---
+
+
+
+任务：
+请你为我创建一个网页底部的固定菜单栏。
+
+总体功能描述：
+这个菜单栏需要固定在浏览器窗口的最下方。它包含一系列功能图标按钮。当用户的鼠标移动到任何一个图标上时，这个图标会从默认的深色样式变为高亮的粉色样式，并且在菜单栏的左侧会同步显示这个功能的中文描述。当鼠标移开时，图标和文字描述都恢复到初始状态。
+你需要设计具体的功能，只是设计图标的位置。
+
+资源与尺寸清单：
+底部栏容器：
+背景图地址： [请在这里粘贴图2那张长条背景图的URL]
+尺寸： 宽度 1920px，高度 52px。
+
+左侧信息图标：这个“圆圈i图标”的中心点位置大约在 (X: 25, Y: 26) 像素左右。
+该图标旁边需要有一个用于显示功能描述的文本区域。
+
+功能图标按钮 (使用雪碧图技术)：
+单个图标显示尺寸： 大部分图标为 34px 高度（总高度102px / 3个状态），“Lock”图标也是34px高度（总高度136px / 4个状态）。宽度各不相同。
+Skip:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_skip.png
+功能描述: “快进文本”
+尺寸: 71x102
+Auto:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_auto.png
+功能描述: “自动阅读文本”
+尺寸: 68x102
+Prev:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_selback.png
+功能描述: “回到上个选项”
+尺寸: 72x102
+Next:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_selnext.png
+功能描述: “前往下个选项”
+尺寸: 74x102
+Voice:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_voice.png
+功能描述: “声音重放”
+尺寸: 84x102
+Fav:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_favo.png
+功能描述: “进行语言收藏”
+尺寸: 62x102
+Save:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_save.png
+功能描述: “打开存档界面”
+尺寸: 74x102
+Load:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_load.png
+功能描述: “打开读档界面”
+尺寸: 74x102
+Q.Save:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_qsave.png
+功能描述: “快速保存存档”
+尺寸: 92x102
+Q.Load:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_qload.png
+功能描述: “快速读取存档”
+尺寸: 92x102
+Log:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_blog.png
+功能描述: “打开剧情回想”
+尺寸: 67x102
+Config:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_config.png
+功能描述: “打开设置界面”
+尺寸: 92x102
+Graph:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_graph.png
+功能描述: “打开甜蜜量表”
+尺寸: 81x102
+Lock:
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_lock.png
+功能描述: “固定系统菜单”
+尺寸: 32x136
+X (关闭):
+地址: https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_close.png
+功能描述: “隐藏文本框”
+尺寸: 32x102
+
+技术实现简要说明 (重写版)
+HTML 结构 (Structure):
+创建一个主 div 作为固定在底部的菜单栏容器，ID 为 menu-bar。
+在容器内，创建左右两个区域的 div：左侧为 info-panel，右侧为 button-container。
+info-panel 内放置一个信息图标 <img> 和一个用于显示描述文本的 <span id="info-text">。
+button-container 内，为每一个功能按钮（Skip, Auto, Lock等）创建一个独立的 div。
+关键点： 为每个按钮 div 设置一个通用 class (如 .menu-button) 用于设置共有样式，同时设置一个唯一 ID (如 #btn-skip, #btn-auto) 用于设置各自的独特样式。
+在每个按钮 div 上，使用 data-description 自定义属性来存储对应的中文功能描述。例如：<div id="btn-skip" class="menu-button" data-description="快进文本"></div>。
+CSS 样式 (Styling):
+菜单栏布局 (#menu-bar):
+使用 position: fixed 将其固定在底部。
+设置 height: 52px。
+使用 display: flex 和 align-items: center 来确保所有内部元素（包括不同宽度的按钮）在垂直方向上都能完美居中。
+雪碧图实现 (核心):
+通用按钮样式 (.menu-button):
+设置所有按钮统一的高度：height: 34px;。
+不要在这里设置 width，因为每个按钮的宽度都不同。
+设置 background-repeat: no-repeat; 和 cursor: pointer;。
+独立按钮样式 (通过唯一ID):
+为每一个按钮的ID (#btn-skip, #btn-auto 等) 单独设置其 background-image URL。
+为每一个按钮的ID 单独设置其精确的 width。例如：#btn-skip { width: 71px; }，#btn-auto { width: 68px; }，#btn-lock { width: 32px; }。
+状态切换 (悬停效果):
+默认状态 (深色图标): 为通用类 .menu-button 设置 background-position: 0 0;。这将显示所有雪碧图最上方的第一个图标。
+悬停状态 (粉色图标): 为通用类 .menu-button:hover 设置 background-position: 0 -34px;。因为所有图标的单个状态高度都是34px，这条规则对所有按钮都有效，能准确地显示第二个高亮图标。
+JavaScript 交互 (Interactivity):
+获取所有带有 .menu-button 类的按钮元素，以及ID为 #info-text 的文本显示元素。
+遍历所有按钮，为每一个按钮添加 mouseover (鼠标移入) 和 mouseout (鼠标移出) 事件监听。
+当 mouseover 触发时： 从当前鼠标悬停的按钮元素上，读取其 data-description 属性的值，然后将这个值赋给 #info-text 元素的 textContent。
+当 mouseout 触发时： 将 #info-text 元素的 textContent 设置为空字符串 ''，使其恢复原状。
+
+
+

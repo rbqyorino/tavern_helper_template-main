@@ -22,12 +22,19 @@
 
     <!-- 角色立绘层 -->
     <div class="character-layer">
-      <div v-for="pos in ['L1', 'L2', 'L3', 'L4']" :key="pos" :class="['character-slot', `position-${pos}`]">
+      <div
+        v-for="pos in ['L1', 'L2', 'L3', 'L4']"
+        :key="pos"
+        :class="['character-slot', `position-${pos}`]"
+      >
         <transition name="fade">
           <img
             v-if="characters[pos]"
             :src="characters[pos]!.sprite"
-            :class="['character-sprite', { active: characters[pos]!.isActive, inactive: !characters[pos]!.isActive }]"
+            :class="[
+              'character-sprite',
+              { active: characters[pos]!.isActive, inactive: !characters[pos]!.isActive },
+            ]"
             :style="getCharacterStyle(pos)"
             alt="角色立绘"
           />
@@ -37,25 +44,41 @@
 
     <!-- 对话框层 -->
     <div class="dialogue-layer" @click="nextLine">
-      <div class="dialogue-box">
-        <!-- 角色名 -->
-        <div v-if="currentDialogue && currentDialogue.type === 'character'" class="character-name">
-          {{ currentDialogue.characterName }}
-        </div>
+      <!-- 名字框 -->
+      <div
+        v-if="currentDialogue && currentDialogue.type === 'character'"
+        class="character-name-box"
+      >
+        <span class="character-name">{{ currentDialogue.characterName }}</span>
+      </div>
 
+      <!-- 主对话框 -->
+      <div class="dialogue-box">
         <!-- 对话内容 -->
         <div class="dialogue-content">
           <span ref="dialogueText">{{ displayedText }}</span>
-          <span v-if="isTyping" class="typing-cursor">▼</span>
+          <span v-if="isTyping" class="typing-cursor"></span>
         </div>
+
+        <!-- 自动播放指示图标 -->
+        <transition name="fade">
+          <div v-if="isAutoPlaying" class="auto-indicator">
+            <img src="https://gitgud.io/RBQ/amakano3/-/raw/master/menu/auto.png" alt="自动" />
+          </div>
+        </transition>
       </div>
     </div>
 
     <!-- 选择层 -->
     <transition name="fade">
-      <div v-if="choices.length > 0" class="choice-layer">
+      <div v-if="choices.length > 0 && !isUIHidden" class="choice-layer">
         <div class="choice-container">
-          <button v-for="(choice, index) in choices" :key="index" class="choice-button" @click="selectChoice(choice)">
+          <button
+            v-for="(choice, index) in choices"
+            :key="index"
+            class="choice-button"
+            @click="selectChoice(choice)"
+          >
             {{ choice }}
           </button>
         </div>
@@ -64,18 +87,40 @@
 
     <!-- BGM通知 -->
     <transition name="slide-down">
-      <div v-if="showBgmNotification" class="bgm-notification">
+      <div v-if="showBgmNotification && !isUIHidden" class="bgm-notification">
         <i class="fas fa-music"></i>
         <span>{{ currentBgmName }}</span>
       </div>
+    </transition>
+
+    <!-- 底部菜单 -->
+    <BottomMenu
+      v-show="!isUIHidden"
+      :is-auto-playing="isAutoPlaying"
+      @toggle-u-i="toggleUIHidden"
+      @toggle-auto="toggleAutoPlay"
+      @toggle-log="openBacklog"
+    />
+
+    <!-- Backlog 剧情回想 -->
+    <transition name="fade">
+      <Backlog
+        v-if="showBacklog"
+        :all-messages="allMessagesForBacklog"
+        :current-line-index="currentLineIndex"
+        @back="closeBacklog"
+        @jump-to="jumpToDialogue"
+      />
     </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import { MessageParser, type DialogueContent } from './parser';
 import gsap from 'gsap';
+import BottomMenu from './components/BottomMenu.vue';
+import Backlog from './components/Backlog.vue';
 
 // 状态定义
 interface Character {
@@ -106,6 +151,9 @@ const dialogueText = ref<HTMLElement>();
 
 const choices = ref<string[]>([]);
 
+// UI 隐藏状态
+const isUIHidden = ref(false);
+
 // 用于追踪当前处理的行数
 const allLines = ref<string[]>([]);
 const currentLineIndex = ref(0);
@@ -114,8 +162,57 @@ const isWaitingForClick = ref(false);
 // 待执行的动作
 const pendingAction = ref<{ character: string; type: string } | null>(null);
 
+// 自动播放状态
+const isAutoPlaying = ref(false);
+let autoPlayTimer: ReturnType<typeof setTimeout> | null = null;
+
 let bgmAudio: HTMLAudioElement | null = null;
 let typingInterval: ReturnType<typeof setInterval> | null = null;
+
+// Backlog 状态
+const showBacklog = ref(false);
+
+// 当前消息ID
+const currentMessageId = ref<number>(-1);
+
+// Backlog 对话数据接口
+interface BacklogDialogue {
+  messageId: number;
+  lineIndex: number;
+  speaker: string | null;
+  content: string;
+  background?: string;
+  characters?: Record<string, Character | undefined>;
+}
+
+// 历史对话数据
+const backlogDialogues = ref<BacklogDialogue[]>([]);
+
+// 初始化当前消息ID
+const initCurrentMessageId = () => {
+  try {
+    if (typeof getCurrentMessageId !== 'undefined') {
+      currentMessageId.value = getCurrentMessageId();
+      console.log('当前消息ID:', currentMessageId.value);
+    }
+  } catch (error) {
+    console.error('获取当前消息ID失败:', error);
+  }
+};
+
+// 获取当前消息用于 Backlog (只显示当前消息,不是所有消息)
+const allMessagesForBacklog = computed(() => {
+  try {
+    if (typeof getChatMessages !== 'undefined' && currentMessageId.value >= 0) {
+      const messages = getChatMessages(currentMessageId.value);
+      console.log('Backlog 获取到的消息:', messages);
+      return messages || [];
+    }
+  } catch (error) {
+    console.error('获取当前消息失败:', error);
+  }
+  return [];
+});
 
 // 获取角色样式
 const getCharacterStyle = (pos: string) => {
@@ -160,6 +257,11 @@ const typeWriter = (text: string, speed = 50) => {
       }
       // 打字完成后执行待执行的动作
       executePendingAction();
+
+      // 如果开启了自动播放，安排下一次自动点击
+      if (isAutoPlaying.value) {
+        scheduleAutoPlay();
+      }
     }
   }, speed);
 };
@@ -186,7 +288,7 @@ const playBgm = (bgmName: string) => {
   bgmAudio.loop = true;
   bgmAudio.volume = 0.5;
 
-  bgmAudio.play().catch(error => {
+  bgmAudio.play().catch((error) => {
     console.error('播放BGM失败:', error);
   });
 
@@ -194,9 +296,10 @@ const playBgm = (bgmName: string) => {
   currentBgmName.value = bgmName;
   showBgmNotification.value = true;
 
+  // 动画展示 0.5s + 停留 2s = 2.5s
   setTimeout(() => {
     showBgmNotification.value = false;
-  }, 2000);
+  }, 2500);
 };
 
 // 设置背景
@@ -217,7 +320,7 @@ const setCharacter = (
   position: 'L1' | 'L2' | 'L3' | 'L4',
   characterName: string,
   sprite: string | undefined,
-  isActive: boolean,
+  isActive: boolean
 ) => {
   if (!sprite) {
     characters.value[position] = undefined;
@@ -237,7 +340,7 @@ const setCharacter = (
 // 执行角色动作
 const performAction = (characterName: string, actionType: string) => {
   // 根据角色名称找到角色所在位置
-  const pos = Object.keys(characters.value).find(key => {
+  const pos = Object.keys(characters.value).find((key) => {
     const char = characters.value[key];
     return char !== undefined && char.name === characterName;
   });
@@ -321,37 +424,46 @@ const performAction = (characterName: string, actionType: string) => {
 };
 
 // 处理单行内容
-const processLine = async (line: string) => {
-  console.log('处理行:', line);
+// @param line 要处理的行内容
+// @param silent 静默模式：true=快速执行不显示对话，false=正常显示
+const processLine = async (line: string, silent = false) => {
+  if (!silent) {
+    console.log('处理行:', line);
+  }
 
   // 处理背景
   const bg = MessageParser.parseBg(line);
   if (bg) {
-    console.log('设置背景:', bg);
+    if (!silent) console.log('设置背景:', bg);
     setBackground(bg);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 静默模式跳过延迟
+    if (!silent) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
     return true; // 继续处理下一行
   }
 
   // 处理CG
   const cg = MessageParser.parseCg(line);
   if (cg) {
-    console.log('设置CG:', cg);
+    if (!silent) console.log('设置CG:', cg);
     setCg(cg);
-    return false; // 停止处理，等待用户点击
+    // 静默模式继续，正常模式暂停
+    return silent;
   }
 
   // 检查隐藏CG
   if (MessageParser.parseHideCg(line)) {
-    console.log('隐藏CG');
+    if (!silent) console.log('隐藏CG');
     hideCg.value = true;
-    return false; // 停止处理，等待用户点击
+    // 静默模式继续，正常模式暂停
+    return silent;
   }
 
   // 处理BGM
   const bgm = MessageParser.parseBgm(line);
   if (bgm) {
-    console.log('播放BGM:', bgm);
+    if (!silent) console.log('播放BGM:', bgm);
     playBgm(bgm);
     return true; // 继续处理下一行
   }
@@ -359,20 +471,21 @@ const processLine = async (line: string) => {
   // 处理选择
   const parsedChoices = MessageParser.parseChoices(line);
   if (parsedChoices) {
-    console.log('显示选择:', parsedChoices);
+    if (!silent) console.log('显示选择:', parsedChoices);
     choices.value = parsedChoices;
-    return false; // 停止处理，等待用户选择
+    // 静默模式继续，正常模式暂停
+    return silent;
   }
 
   // 处理对话
   const dialogue = MessageParser.parseDialogue(line);
   if (dialogue) {
-    console.log('显示对话:', dialogue);
+    if (!silent) console.log('显示对话:', dialogue);
     currentDialogue.value = dialogue;
 
     if (dialogue.type === 'character') {
       // 设置所有角色为非激活状态
-      Object.keys(characters.value).forEach(pos => {
+      Object.keys(characters.value).forEach((pos) => {
         if (characters.value[pos]) {
           characters.value[pos]!.isActive = false;
         }
@@ -380,25 +493,49 @@ const processLine = async (line: string) => {
 
       // 设置当前说话角色
       if (dialogue.position && dialogue.sprite && dialogue.characterName) {
-        console.log(`设置角色 ${dialogue.characterName} 在位置 ${dialogue.position}`);
+        if (!silent) {
+          console.log(`设置角色 ${dialogue.characterName} 在位置 ${dialogue.position}`);
+        }
         setCharacter(dialogue.position, dialogue.characterName, dialogue.sprite, true);
       }
 
       // 保存动作，等待打字完成后执行
       if (dialogue.action) {
-        console.log('保存待执行动作:', dialogue.action);
+        if (!silent) console.log('保存待执行动作:', dialogue.action);
         pendingAction.value = dialogue.action;
       } else {
         pendingAction.value = null;
       }
     }
 
-    // 使用打字机效果显示对话内容
-    typeWriter(dialogue.content);
-    return false; // 停止处理，等待用户点击
+    if (silent) {
+      // 静默模式：直接显示完整文本，不播放打字机
+      displayedText.value = dialogue.content;
+      return true; // 继续下一行
+    } else {
+      // 正常模式：使用打字机效果显示对话内容
+      typeWriter(dialogue.content);
+      return false; // 停止处理，等待用户点击
+    }
   }
 
   return true; // 继续处理下一行
+};
+
+// 处理对话框点击
+const handleDialogueClick = () => {
+  // 如果正在自动播放，取消自动播放
+  if (isAutoPlaying.value) {
+    stopAutoPlay();
+
+    // 如果正在打字，不中断打字机，只停止自动播放
+    if (isTyping.value) {
+      return;
+    }
+  }
+
+  // 正常的点击逻辑
+  nextLine();
 };
 
 // 处理下一行
@@ -431,6 +568,12 @@ const nextLine = async () => {
     if (!shouldContinue) {
       // 遇到对话或选择，等待用户交互
       isWaitingForClick.value = true;
+
+      // 如果开启了自动播放，启动自动播放计时器
+      if (isAutoPlaying.value) {
+        scheduleAutoPlay();
+      }
+
       break;
     }
 
@@ -438,14 +581,272 @@ const nextLine = async () => {
   }
 };
 
+// 启动自动播放
+const startAutoPlay = () => {
+  isAutoPlaying.value = true;
+
+  // 如果当前正在等待点击，立即启动自动播放
+  if (isWaitingForClick.value && !isTyping.value) {
+    scheduleAutoPlay();
+  }
+};
+
+// 停止自动播放
+const stopAutoPlay = () => {
+  isAutoPlaying.value = false;
+
+  if (autoPlayTimer) {
+    clearTimeout(autoPlayTimer);
+    autoPlayTimer = null;
+  }
+};
+
+// 安排自动播放的下一次触发
+const scheduleAutoPlay = () => {
+  // 清除之前的计时器
+  if (autoPlayTimer) {
+    clearTimeout(autoPlayTimer);
+    autoPlayTimer = null;
+  }
+
+  // 如果有选择项，停止自动播放
+  if (choices.value.length > 0) {
+    stopAutoPlay();
+    return;
+  }
+
+  // 如果正在打字，等待打字完成后再安排
+  if (isTyping.value) {
+    return; // 打字机完成时会再次调用 scheduleAutoPlay
+  }
+
+  // 等待 0.5 秒后自动点击
+  autoPlayTimer = setTimeout(() => {
+    if (isAutoPlaying.value) {
+      nextLine();
+    }
+  }, 1000);
+};
+
+// 切换自动播放状态
+const toggleAutoPlay = () => {
+  if (isAutoPlaying.value) {
+    stopAutoPlay();
+  } else {
+    startAutoPlay();
+  }
+};
+
+// 重置游戏状态（用于回溯功能）
+const resetGameState = () => {
+  console.log('重置游戏状态');
+
+  // 重置对话
+  currentDialogue.value = undefined;
+  displayedText.value = '';
+  isTyping.value = false;
+
+  // 重置界面元素
+  choices.value = [];
+  isWaitingForClick.value = false;
+  pendingAction.value = null;
+
+  // 重置场景
+  currentBackground.value = '';
+  currentCg.value = '';
+  hideCg.value = false;
+
+  // 重置角色
+  characters.value = {
+    L1: undefined,
+    L2: undefined,
+    L3: undefined,
+    L4: undefined,
+  };
+
+  // 停止并重置BGM
+  if (bgmAudio) {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0;
+  }
+  currentBgmName.value = '';
+  showBgmNotification.value = false;
+
+  // 清除定时器
+  if (typingInterval) {
+    clearInterval(typingInterval);
+    typingInterval = null;
+  }
+  if (autoPlayTimer) {
+    clearTimeout(autoPlayTimer);
+    autoPlayTimer = null;
+  }
+
+  // 停止自动播放
+  isAutoPlaying.value = false;
+};
+
+// 切换UI隐藏状态
+const toggleUIHidden = () => {
+  isUIHidden.value = true;
+  setupRestoreListeners();
+};
+
+// 打开 Backlog
+const openBacklog = () => {
+  console.log('打开 Backlog');
+  console.log('当前消息ID:', currentMessageId.value);
+  console.log('当前行索引:', currentLineIndex.value);
+  console.log('可用消息:', allMessagesForBacklog.value);
+  showBacklog.value = true;
+};
+
+// 关闭 Backlog
+const closeBacklog = () => {
+  showBacklog.value = false;
+};
+
+// 回溯到指定对话
+const jumpToDialogue = async (dialogue: BacklogDialogue) => {
+  console.log('回溯到对话:', dialogue);
+
+  // 1. 关闭 Backlog
+  showBacklog.value = false;
+
+  // 2. 完全重置游戏状态
+  resetGameState();
+
+  // 3. 重新加载消息并快速播放到目标行
+  try {
+    if (typeof getChatMessages !== 'undefined' && currentMessageId.value >= 0) {
+      const messages = getChatMessages(currentMessageId.value);
+
+      if (messages && messages[0]) {
+        // 分解消息为行（与handleMessage相同的逻辑）
+        const lines = messages[0].message
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l);
+
+        console.log('总行数:', lines.length, '目标行:', dialogue.lineIndex);
+
+        allLines.value = lines;
+        currentLineIndex.value = 0;
+
+        // 4. 快速播放到目标行的前一行（静默模式）
+        if (dialogue.lineIndex > 0) {
+          console.log('开始快速播放到第', dialogue.lineIndex - 1, '行');
+
+          while (currentLineIndex.value < dialogue.lineIndex) {
+            const line = allLines.value[currentLineIndex.value];
+            const shouldContinue = await processLine(line, true); // silent=true
+
+            if (shouldContinue) {
+              currentLineIndex.value++;
+            } else {
+              // 即使在静默模式下遇到需要暂停的命令(如CG)，也继续
+              currentLineIndex.value++;
+            }
+          }
+
+          console.log('快速播放完成，当前行索引:', currentLineIndex.value);
+        }
+
+        // 5. 正常播放目标行（显示对话+打字机）
+        console.log('开始正常播放目标行');
+        const targetLine = allLines.value[dialogue.lineIndex];
+        await processLine(targetLine, false); // silent=false
+
+        // 设置等待状态
+        isWaitingForClick.value = true;
+      }
+    }
+  } catch (error) {
+    console.error('回溯失败:', error);
+  }
+};
+
+// 解析所有历史消息并提取对话
+const parseHistoryDialogues = () => {
+  const dialogues: BacklogDialogue[] = [];
+
+  try {
+    if (typeof getChatMessages !== 'undefined') {
+      const messages = getChatMessages();
+
+      if (messages && messages.length > 0) {
+        messages.forEach((msg, messageId) => {
+          if (!msg || !msg.message) return;
+
+          const lines = msg.message.split('\n').map((l) => l.trim()).filter((l) => l);
+          let currentBg = '';
+          let currentChars: Record<string, Character | undefined> = {
+            L1: undefined,
+            L2: undefined,
+            L3: undefined,
+            L4: undefined,
+          };
+
+          lines.forEach((line, lineIndex) => {
+            // 跟踪背景变化
+            const bg = MessageParser.parseBg(line);
+            if (bg) {
+              currentBg = MessageParser.resolveAssetUrl(bg, 'image');
+              return;
+            }
+
+            // 解析对话
+            const dialogue = MessageParser.parseDialogue(line);
+            if (dialogue) {
+              // 更新立绘状态
+              if (dialogue.type === 'character' && dialogue.position && dialogue.sprite) {
+                currentChars[dialogue.position] = {
+                  name: dialogue.characterName || '',
+                  sprite: MessageParser.resolveAssetUrl(dialogue.sprite, 'image'),
+                  isActive: true,
+                  scale: 1,
+                };
+              }
+
+              // 移除 [action|...] 标记
+              const cleanContent = dialogue.content.replace(/\[action\|[^\]]+\]/g, '').trim();
+
+              dialogues.push({
+                messageId,
+                lineIndex,
+                speaker: dialogue.type === 'character' ? dialogue.characterName : null,
+                content: cleanContent,
+                background: currentBg,
+                characters: { ...currentChars },
+              });
+            }
+          });
+        });
+      }
+    }
+  } catch (error) {
+    console.error('解析历史对话失败:', error);
+  }
+
+  backlogDialogues.value = dialogues;
+};
+
+// 设置恢复UI的监听器
+const setupRestoreListeners = () => {
+  const restoreUI = (e: Event) => {
+    e.stopPropagation();
+    isUIHidden.value = false;
+  };
+
+  window.addEventListener('click', restoreUI, { once: true, capture: true });
+  window.addEventListener('keydown', restoreUI, { once: true, capture: true });
+};
+
 // 处理消息 - 初始化消息并开始处理
 const handleMessage = async (message: string) => {
   console.log('处理消息内容:', message);
 
-  const lines = message
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l => l);
+  const lines = message.split('\n').map((l) => l.trim()).filter((l) => l);
   console.log('分解后的行数:', lines.length);
 
   // 存储所有行并重置索引
@@ -461,6 +862,9 @@ const handleMessage = async (message: string) => {
 // 监听酒馆消息
 onMounted(() => {
   console.log('GAL游戏界面已加载');
+
+  // 初始化当前消息ID用于Backlog
+  initCurrentMessageId();
 
   // 获取当前消息
   try {
@@ -498,6 +902,8 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import url('https://fontsapi.zeoseven.com/285/main/result.css');
+
 .gal-container {
   position: relative;
   width: 100%;
@@ -505,6 +911,8 @@ onUnmounted(() => {
   min-height: 600px;
   overflow: hidden;
   background: #000;
+  font-family: 'Noto Serif CJK', serif;
+  font-weight: normal;
 }
 
 // 背景层
@@ -582,9 +990,7 @@ onUnmounted(() => {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition:
-    filter 0.3s ease,
-    transform 0.3s ease;
+  transition: filter 0.3s ease, transform 0.3s ease;
 
   &.active {
     filter: brightness(1);
@@ -601,41 +1007,77 @@ onUnmounted(() => {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 30%;
+  height: 20%;
   z-index: 4;
+  cursor: pointer;
   display: flex;
   align-items: flex-end;
-  padding: 20px;
-  cursor: pointer;
 }
 
+// 主对话框
+// 主对话框
 .dialogue-box {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 10px;
-  padding: 20px;
   position: relative;
+  width: 100%;
+  aspect-ratio: 1920 / 294;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.png') no-repeat center / 100% 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8% 0 5%;
+}
+
+// 名字框
+.character-name-box {
+  position: absolute;
+  left: 3%;
+  top: -30%;
+  width: 16.3%;
+  aspect-ratio: 313 / 88;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/name.png') no-repeat center / 100% 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
 }
 
 .character-name {
-  font-size: 1.2em;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 10px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  font-size: clamp(1rem, 2.5vw, 2rem);
+  font-weight: 600;
+  color: #4a2818;
+  text-align: center;
+  padding: 0 10%;
+  text-shadow: -1px -1px 0 rgba(255, 245, 235, 0.6), 1px -1px 0 rgba(255, 245, 235, 0.6),
+    -1px 1px 0 rgba(255, 245, 235, 0.6), 1px 1px 0 rgba(255, 245, 235, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.15), 0 0 8px rgba(255, 255, 255, 0.2);
 }
 
 .dialogue-content {
-  font-size: 1em;
-  color: #fff;
-  line-height: 1.6;
-  min-height: 3em;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  color: #f8f4f0;
+  line-height: 1.8;
+  width: 100%;
+  text-shadow: -1.5px -1.5px 0 #4a3820, 1.5px -1.5px 0 #4a3820, -1.5px 1.5px 0 #4a3820,
+    1.5px 1.5px 0 #4a3820, 0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
 .typing-cursor {
   display: inline-block;
   animation: blink 1s infinite;
-  margin-left: 4px;
+}
+
+// 自动播放指示图标
+.auto-indicator {
+  position: absolute;
+  right: 8%;
+  top: 20px;
+  z-index: 2;
+  pointer-events: none;
+
+  img {
+    width: auto;
+    height: 30px;
+    opacity: 0.9;
+  }
 }
 
 @keyframes blink {
@@ -691,23 +1133,24 @@ onUnmounted(() => {
 .bgm-notification {
   position: absolute;
   top: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
-  padding: 15px 25px;
-  border-radius: 8px;
+  left: 0;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bt_bgm.png') no-repeat center / 100% 100%;
   z-index: 6;
   display: flex;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-
+  justify-content: center;
+  width: clamp(200px, 40vw, 300px);
+  aspect-ratio: 3 / 0.5;
+  border-radius: 12px;
+overflow: hidden;
   i {
-    font-size: 1.2em;
+    display: none;
   }
 
   span {
-    font-size: 1em;
+    font-size: clamp(1rem, 1.5vw, 2rem);
+    font-weight: 800;
+    color: #453118;
   }
 }
 
@@ -722,19 +1165,22 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-// 下滑动画
-.slide-down-enter-active,
-.slide-down-leave-active {
+// 横向滑动动画 (BGM通知)
+.slide-down-enter-active {
   transition: all 0.5s ease;
 }
 
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+
 .slide-down-enter-from {
-  opacity: 0;
-  transform: translateY(-50px);
+  opacity: 1;
+  transform: translateX(-100%);
 }
 
 .slide-down-leave-to {
   opacity: 0;
-  transform: translateY(-50px);
+  transform: translateX(-100%);
 }
 </style>
