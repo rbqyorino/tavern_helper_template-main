@@ -43,17 +43,17 @@
     </div>
 
     <!-- 对话框层 -->
-    <div class="dialogue-layer" @click="nextLine">
-      <!-- 名字框 -->
-      <div
-        v-if="currentDialogue && currentDialogue.type === 'character'"
-        class="character-name-box"
-      >
-        <span class="character-name">{{ currentDialogue.characterName }}</span>
-      </div>
-
+    <div v-show="!isUIHidden" class="dialogue-layer" @click="handleDialogueClick">
       <!-- 主对话框 -->
       <div class="dialogue-box">
+        <!-- 名字框 -->
+        <div
+          v-if="currentDialogue && currentDialogue.type === 'character'"
+          class="character-name-box"
+        >
+          <span class="character-name">{{ currentDialogue.characterName }}</span>
+        </div>
+
         <!-- 对话内容 -->
         <div class="dialogue-content">
           <span ref="dialogueText">{{ displayedText }}</span>
@@ -100,6 +100,7 @@
       @toggle-u-i="toggleUIHidden"
       @toggle-auto="toggleAutoPlay"
       @toggle-log="openBacklog"
+      @toggle-music="openMusicSettings"
     />
 
     <!-- Backlog 剧情回想 -->
@@ -112,6 +113,22 @@
         @jump-to="jumpToDialogue"
       />
     </transition>
+
+    <!-- 音乐设置 -->
+    <transition name="fade">
+      <MusicSettings
+        v-if="showMusicSettings"
+        :bgm-name="currentBgmName"
+        :volume="bgmVolume"
+        :current-time="bgmCurrentTime"
+        :duration="bgmDuration"
+        :is-playing="bgmIsPlaying"
+        @back="closeMusicSettings"
+        @volume-change="handleVolumeChange"
+        @seek="handleSeek"
+        @toggle-play-pause="handleTogglePlayPause"
+      />
+    </transition>
   </div>
 </template>
 
@@ -121,6 +138,7 @@ import { MessageParser, type DialogueContent } from './parser';
 import gsap from 'gsap';
 import BottomMenu from './components/BottomMenu.vue';
 import Backlog from './components/Backlog.vue';
+import MusicSettings from './components/MusicSettings.vue';
 
 // 状态定义
 interface Character {
@@ -171,6 +189,13 @@ let typingInterval: ReturnType<typeof setInterval> | null = null;
 
 // Backlog 状态
 const showBacklog = ref(false);
+
+// MusicSettings 状态
+const showMusicSettings = ref(false);
+const bgmVolume = ref(0.5);
+const bgmCurrentTime = ref(0);
+const bgmDuration = ref(0);
+const bgmIsPlaying = ref(false);
 
 // 当前消息ID
 const currentMessageId = ref<number>(-1);
@@ -281,16 +306,38 @@ const playBgm = (bgmName: string) => {
 
   if (bgmAudio) {
     bgmAudio.pause();
+    bgmAudio.removeEventListener('loadedmetadata', updateBgmDuration);
+    bgmAudio.removeEventListener('timeupdate', updateBgmTime);
     bgmAudio = null;
   }
 
   bgmAudio = new Audio(url);
   bgmAudio.loop = true;
-  bgmAudio.volume = 0.5;
+  bgmAudio.volume = bgmVolume.value;
+
+  // 监听音频元数据加载完成
+  const updateBgmDuration = () => {
+    if (bgmAudio) {
+      bgmDuration.value = bgmAudio.duration;
+    }
+  };
+
+  // 监听播放进度更新
+  const updateBgmTime = () => {
+    if (bgmAudio) {
+      bgmCurrentTime.value = bgmAudio.currentTime;
+      bgmIsPlaying.value = !bgmAudio.paused;
+    }
+  };
+
+  bgmAudio.addEventListener('loadedmetadata', updateBgmDuration);
+  bgmAudio.addEventListener('timeupdate', updateBgmTime);
 
   bgmAudio.play().catch((error) => {
     console.error('播放BGM失败:', error);
   });
+
+  bgmIsPlaying.value = true;
 
   // 显示BGM通知
   currentBgmName.value = bgmName;
@@ -706,6 +753,48 @@ const closeBacklog = () => {
   showBacklog.value = false;
 };
 
+// 打开 MusicSettings
+const openMusicSettings = () => {
+  console.log('打开音乐设置');
+  showMusicSettings.value = true;
+};
+
+// 关闭 MusicSettings
+const closeMusicSettings = () => {
+  showMusicSettings.value = false;
+};
+
+// 处理音量变化
+const handleVolumeChange = (volume: number) => {
+  bgmVolume.value = volume;
+  if (bgmAudio) {
+    bgmAudio.volume = volume;
+  }
+};
+
+// 处理进度跳转
+const handleSeek = (time: number) => {
+  if (bgmAudio) {
+    bgmAudio.currentTime = time;
+    bgmCurrentTime.value = time;
+  }
+};
+
+// 切换播放/暂停
+const handleTogglePlayPause = () => {
+  if (!bgmAudio) return;
+
+  if (bgmAudio.paused) {
+    bgmAudio.play().catch((error) => {
+      console.error('播放BGM失败:', error);
+    });
+    bgmIsPlaying.value = true;
+  } else {
+    bgmAudio.pause();
+    bgmIsPlaying.value = false;
+  }
+};
+
 // 回溯到指定对话
 const jumpToDialogue = async (dialogue: BacklogDialogue) => {
   console.log('回溯到对话:', dialogue);
@@ -1007,57 +1096,90 @@ onUnmounted(() => {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 20%;
   z-index: 4;
   cursor: pointer;
-  display: flex;
-  align-items: flex-end;
 }
 
-// 主对话框
 // 主对话框
 .dialogue-box {
   position: relative;
   width: 100%;
-  aspect-ratio: 1920 / 294;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.png') no-repeat center / 100% 100%;
+  height: 200px;
   display: flex;
   align-items: center;
   padding: 0 8% 0 5%;
 }
 
+// 对话框背景图片 - 半透明
+.dialogue-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.png') no-repeat center / cover;
+  opacity: 0.7;
+  z-index: 0;
+  pointer-events: none;
+}
+
 // 名字框
 .character-name-box {
   position: absolute;
-  left: 3%;
-  top: -30%;
+  left: 13%;
+  top: 0;
+  transform: translateY(70%);
   width: 16.3%;
-  aspect-ratio: 313 / 88;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/name.png') no-repeat center / 100% 100%;
+  max-width: 300px;   /* 限制最大宽度，防止宽屏时过大 */
+  max-height: 47px;   /* 限制最大高度 */
+  aspect-ratio: 313 / 200;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 5;
 }
 
+// 名字框背景 - 半透明
+.character-name-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/name.png') no-repeat center / 100% 100%;
+  opacity: 0.8;
+  z-index: -1;
+  pointer-events: none;
+}
+
 .character-name {
-  font-size: clamp(1rem, 2.5vw, 2rem);
-  font-weight: 600;
-  color: #4a2818;
+  font-size: clamp(1rem, 2.2vw, 2rem);
+  font-weight: 800;
+  transform: translateY(-13%);
+  padding: 5px 25px;
+  color: #ffffff;
   text-align: center;
   padding: 0 10%;
-  text-shadow: -1px -1px 0 rgba(255, 245, 235, 0.6), 1px -1px 0 rgba(255, 245, 235, 0.6),
-    -1px 1px 0 rgba(255, 245, 235, 0.6), 1px 1px 0 rgba(255, 245, 235, 0.6),
-    0 2px 4px rgba(0, 0, 0, 0.15), 0 0 8px rgba(255, 255, 255, 0.2);
+  -webkit-text-stroke: 4px #453118;
+  paint-order: stroke fill;
+  letter-spacing: 0.3em;
+  position: relative;
+  z-index: 1;
 }
 
 .dialogue-content {
   font-size: clamp(1.2rem, 2vw, 1.8rem);
-  color: #f8f4f0;
+  color: #ffffff;
   line-height: 1.8;
   width: 100%;
-  text-shadow: -1.5px -1.5px 0 #4a3820, 1.5px -1.5px 0 #4a3820, -1.5px 1.5px 0 #4a3820,
-    1.5px 1.5px 0 #4a3820, 0 3px 6px rgba(0, 0, 0, 0.5);
+    font-weight: 800;
+  -webkit-text-stroke: 3px #000000;
+  paint-order: stroke fill;
+  margin-left: 15%;
+  position: relative;
+  z-index: 1;
 }
 
 .typing-cursor {
