@@ -439,6 +439,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       if (builtin.includes(request)) {
         return callback();
       }
+<<<<<<< HEAD
       // 对于 gal 项目,不使用 externals,将所有依赖打包进去
       const isGalProject = context.includes('\\gal') || context.includes('/gal');
       const isVueInternal = request.startsWith('@vue/') || request.startsWith('vue');
@@ -457,6 +458,8 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       }
 
       // 非 gal 项目使用原有逻辑
+=======
+>>>>>>> 412feb7c571a8a4422f02d18bee5ade55eee3ae2
       if (argv.mode !== 'production' && ['vue', 'pixi'].some(key => request.includes(key))) {
         return callback();
       }
