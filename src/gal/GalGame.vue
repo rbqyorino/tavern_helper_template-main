@@ -22,19 +22,12 @@
 
     <!-- 角色立绘层 -->
     <div class="character-layer">
-      <div
-        v-for="pos in ['L1', 'L2', 'L3', 'L4']"
-        :key="pos"
-        :class="['character-slot', `position-${pos}`]"
-      >
+      <div v-for="pos in ['L1', 'L2', 'L3', 'L4']" :key="pos" :class="['character-slot', `position-${pos}`]">
         <transition name="fade">
           <img
             v-if="characters[pos]"
             :src="characters[pos]!.sprite"
-            :class="[
-              'character-sprite',
-              { active: characters[pos]!.isActive, inactive: !characters[pos]!.isActive },
-            ]"
+            :class="['character-sprite', { active: characters[pos]!.isActive, inactive: !characters[pos]!.isActive }]"
             :style="getCharacterStyle(pos)"
             alt="角色立绘"
           />
@@ -47,10 +40,7 @@
       <!-- 主对话框 -->
       <div class="dialogue-box">
         <!-- 名字框 -->
-        <div
-          v-if="currentDialogue && currentDialogue.type === 'character'"
-          class="character-name-box"
-        >
+        <div v-if="currentDialogue && currentDialogue.type === 'character'" class="character-name-box">
           <span class="character-name">{{ currentDialogue.characterName }}</span>
         </div>
 
@@ -73,12 +63,7 @@
     <transition name="fade">
       <div v-if="choices.length > 0 && !isUIHidden" class="choice-layer">
         <div class="choice-container">
-          <button
-            v-for="(choice, index) in choices"
-            :key="index"
-            class="choice-button"
-            @click="selectChoice(choice)"
-          >
+          <button v-for="(choice, index) in choices" :key="index" class="choice-button" @click="selectChoice(choice)">
             {{ choice }}
           </button>
         </div>
@@ -133,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue';
 import { MessageParser, type DialogueContent } from './parser';
 import gsap from 'gsap';
 import BottomMenu from './components/BottomMenu.vue';
@@ -187,6 +172,10 @@ let autoPlayTimer: ReturnType<typeof setTimeout> | null = null;
 let bgmAudio: HTMLAudioElement | null = null;
 let typingInterval: ReturnType<typeof setInterval> | null = null;
 
+// 呼吸特效状态和动画实例
+const breathingEnabled = ref(true); // 呼吸特效开关
+const breathingAnimations = new Map<string, gsap.core.Tween>(); // 存储每个角色的呼吸动画
+
 // Backlog 状态
 const showBacklog = ref(false);
 
@@ -231,7 +220,8 @@ const allMessagesForBacklog = computed(() => {
     if (typeof getChatMessages !== 'undefined' && currentMessageId.value >= 0) {
       const messages = getChatMessages(currentMessageId.value);
       console.log('Backlog 获取到的消息:', messages);
-      return messages || [];
+      // 添加 id 字段以供 Backlog 使用
+      return messages ? messages.map((msg: any) => ({ ...msg, id: currentMessageId.value })) : [];
     }
   } catch (error) {
     console.error('获取当前消息失败:', error);
@@ -247,6 +237,62 @@ const getCharacterStyle = (pos: string) => {
   return {
     transform: `scale(${char.scale || 1})`,
   };
+};
+
+// 启动角色呼吸动画
+const startBreathing = (pos: string) => {
+  if (!breathingEnabled.value) return;
+
+  // 如果已经有动画在运行，先停止
+  stopBreathing(pos);
+
+  const element = document.querySelector(`.position-${pos} .character-sprite`) as HTMLElement;
+  if (!element) return;
+
+  // 创建呼吸动画：轻微的上下浮动
+  const animation = gsap.to(element, {
+    y: -8, // 向上浮动 8 像素
+    duration: 2.5, // 一次呼吸周期 2.5 秒
+    ease: 'sine.inOut', // 平滑的正弦曲线
+    repeat: -1, // 无限循环
+    yoyo: true, // 来回往复
+  });
+
+  breathingAnimations.set(pos, animation);
+};
+
+// 停止角色呼吸动画
+const stopBreathing = (pos: string) => {
+  const animation = breathingAnimations.get(pos);
+  if (animation) {
+    animation.kill(); // 停止动画
+    breathingAnimations.delete(pos);
+
+    // 重置位置
+    const element = document.querySelector(`.position-${pos} .character-sprite`) as HTMLElement;
+    if (element) {
+      gsap.set(element, { y: 0 });
+    }
+  }
+};
+
+// 切换呼吸特效开关
+const toggleBreathing = (enabled: boolean) => {
+  breathingEnabled.value = enabled;
+
+  if (enabled) {
+    // 开启：为所有现有角色启动呼吸动画
+    Object.keys(characters.value).forEach(pos => {
+      if (characters.value[pos]) {
+        startBreathing(pos);
+      }
+    });
+  } else {
+    // 关闭：停止所有呼吸动画
+    Object.keys(characters.value).forEach(pos => {
+      stopBreathing(pos);
+    });
+  }
 };
 
 // 处理选择点击
@@ -333,7 +379,7 @@ const playBgm = (bgmName: string) => {
   bgmAudio.addEventListener('loadedmetadata', updateBgmDuration);
   bgmAudio.addEventListener('timeupdate', updateBgmTime);
 
-  bgmAudio.play().catch((error) => {
+  bgmAudio.play().catch(error => {
     console.error('播放BGM失败:', error);
   });
 
@@ -367,9 +413,11 @@ const setCharacter = (
   position: 'L1' | 'L2' | 'L3' | 'L4',
   characterName: string,
   sprite: string | undefined,
-  isActive: boolean
+  isActive: boolean,
 ) => {
   if (!sprite) {
+    // 角色移除时，停止呼吸动画
+    stopBreathing(position);
     characters.value[position] = undefined;
     return;
   }
@@ -382,12 +430,17 @@ const setCharacter = (
     isActive,
     scale: 1,
   };
+
+  // 角色显示后，等待 DOM 更新再启动呼吸动画
+  nextTick(() => {
+    startBreathing(position);
+  });
 };
 
 // 执行角色动作
 const performAction = (characterName: string, actionType: string) => {
   // 根据角色名称找到角色所在位置
-  const pos = Object.keys(characters.value).find((key) => {
+  const pos = Object.keys(characters.value).find(key => {
     const char = characters.value[key];
     return char !== undefined && char.name === characterName;
   });
@@ -408,22 +461,28 @@ const performAction = (characterName: string, actionType: string) => {
 
   switch (actionType) {
     case 'shake':
-      gsap.to(element, {
-        x: -10,
-        duration: 0.05,
-        repeat: 5,
-        yoyo: true,
-        ease: 'power1.inOut',
-        onComplete: () => {
-          gsap.set(element, { x: 0 });
+      // 双方向抖动：从右到左再回来
+      gsap.fromTo(
+        element,
+        { x: 30 },
+        {
+          x: -30,
+          duration: 0.1,
+          repeat: 5,
+          yoyo: true,
+          ease: 'power1.inOut',
+          onComplete: () => {
+            gsap.set(element, { x: 0 });
+          },
         },
-      });
+      );
       break;
 
     case 'jump_up':
+      // 使用 translateY 而不是 y，避免被父容器裁剪
       gsap.to(element, {
-        y: -30,
-        duration: 0.3,
+        y: -40,
+        duration: 0.4,
         ease: 'power2.out',
         onComplete: () => {
           gsap.to(element, {
@@ -437,8 +496,8 @@ const performAction = (characterName: string, actionType: string) => {
 
     case 'jump_down':
       gsap.to(element, {
-        y: 20,
-        duration: 0.3,
+        y: 40,
+        duration: 0.4,
         ease: 'power2.out',
         onComplete: () => {
           gsap.to(element, {
@@ -485,7 +544,7 @@ const processLine = async (line: string, silent = false) => {
     setBackground(bg);
     // 静默模式跳过延迟
     if (!silent) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     return true; // 继续处理下一行
   }
@@ -532,7 +591,7 @@ const processLine = async (line: string, silent = false) => {
 
     if (dialogue.type === 'character') {
       // 设置所有角色为非激活状态
-      Object.keys(characters.value).forEach((pos) => {
+      Object.keys(characters.value).forEach(pos => {
         if (characters.value[pos]) {
           characters.value[pos]!.isActive = false;
         }
@@ -703,7 +762,10 @@ const resetGameState = () => {
   currentCg.value = '';
   hideCg.value = false;
 
-  // 重置角色
+  // 重置角色并停止呼吸动画
+  Object.keys(characters.value).forEach(pos => {
+    stopBreathing(pos);
+  });
   characters.value = {
     L1: undefined,
     L2: undefined,
@@ -785,7 +847,7 @@ const handleTogglePlayPause = () => {
   if (!bgmAudio) return;
 
   if (bgmAudio.paused) {
-    bgmAudio.play().catch((error) => {
+    bgmAudio.play().catch(error => {
       console.error('播放BGM失败:', error);
     });
     bgmIsPlaying.value = true;
@@ -814,40 +876,33 @@ const jumpToDialogue = async (dialogue: BacklogDialogue) => {
         // 分解消息为行（与handleMessage相同的逻辑）
         const lines = messages[0].message
           .split('\n')
-          .map((l) => l.trim())
-          .filter((l) => l);
+          .map(l => l.trim())
+          .filter(l => l);
 
         console.log('总行数:', lines.length, '目标行:', dialogue.lineIndex);
 
+        // 存储所有行
         allLines.value = lines;
-        currentLineIndex.value = 0;
 
-        // 4. 快速播放到目标行的前一行（静默模式）
+        // 4. 快速播放到目标行之前的所有行（静默模式）
         if (dialogue.lineIndex > 0) {
-          console.log('开始快速播放到第', dialogue.lineIndex - 1, '行');
+          console.log('开始快速播放从第 0 行到第', dialogue.lineIndex - 1, '行');
 
-          while (currentLineIndex.value < dialogue.lineIndex) {
-            const line = allLines.value[currentLineIndex.value];
-            const shouldContinue = await processLine(line, true); // silent=true
-
-            if (shouldContinue) {
-              currentLineIndex.value++;
-            } else {
-              // 即使在静默模式下遇到需要暂停的命令(如CG)，也继续
-              currentLineIndex.value++;
-            }
+          // 依次处理目标行之前的所有行（静默模式,瞬间完成)
+          for (let i = 0; i < dialogue.lineIndex; i++) {
+            await processLine(allLines.value[i], true); // silent=true 快速执行
           }
 
-          console.log('快速播放完成，当前行索引:', currentLineIndex.value);
+          console.log('快速播放完成');
         }
 
-        // 5. 正常播放目标行（显示对话+打字机）
-        console.log('开始正常播放目标行');
-        const targetLine = allLines.value[dialogue.lineIndex];
-        await processLine(targetLine, false); // silent=false
+        // 5. 设置索引为目标行的前一个位置,通过 nextLine 自然播放目标行
+        // nextLine 会先 currentLineIndex++ 再处理,所以这里设置为 lineIndex - 1
+        console.log('准备播放目标行:', dialogue.lineIndex);
+        currentLineIndex.value = dialogue.lineIndex - 1;
 
-        // 设置等待状态
-        isWaitingForClick.value = true;
+        // 调用 nextLine 让它自然地处理目标行 (会先++再播放)
+        await nextLine();
       }
     }
   } catch (error) {
@@ -867,7 +922,10 @@ const parseHistoryDialogues = () => {
         messages.forEach((msg, messageId) => {
           if (!msg || !msg.message) return;
 
-          const lines = msg.message.split('\n').map((l) => l.trim()).filter((l) => l);
+          const lines = msg.message
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l);
           let currentBg = '';
           let currentChars: Record<string, Character | undefined> = {
             L1: undefined,
@@ -935,7 +993,10 @@ const setupRestoreListeners = () => {
 const handleMessage = async (message: string) => {
   console.log('处理消息内容:', message);
 
-  const lines = message.split('\n').map((l) => l.trim()).filter((l) => l);
+  const lines = message
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l);
   console.log('分解后的行数:', lines.length);
 
   // 存储所有行并重置索引
@@ -978,6 +1039,11 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  // 清理所有呼吸动画
+  Object.keys(characters.value).forEach(pos => {
+    stopBreathing(pos);
+  });
+
   if (bgmAudio) {
     bgmAudio.pause();
     bgmAudio = null;
@@ -1073,13 +1139,16 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  overflow: visible; // 允许动画超出容器边界
 }
 
 .character-sprite {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: filter 0.3s ease, transform 0.3s ease;
+  transition:
+    filter 0.3s ease,
+    transform 0.3s ease;
 
   &.active {
     filter: brightness(1);
@@ -1131,8 +1200,8 @@ onUnmounted(() => {
   top: 0;
   transform: translateY(70%);
   width: 16.3%;
-  max-width: 300px;   /* 限制最大宽度，防止宽屏时过大 */
-  max-height: 47px;   /* 限制最大高度 */
+  max-width: 300px; /* 限制最大宽度，防止宽屏时过大 */
+  max-height: 47px; /* 限制最大高度 */
   aspect-ratio: 313 / 200;
   display: flex;
   align-items: center;
@@ -1174,7 +1243,7 @@ onUnmounted(() => {
   color: #ffffff;
   line-height: 1.8;
   width: 100%;
-    font-weight: 800;
+  font-weight: 800;
   -webkit-text-stroke: 3px #000000;
   paint-order: stroke fill;
   margin-left: 15%;
@@ -1264,7 +1333,7 @@ onUnmounted(() => {
   width: clamp(200px, 40vw, 300px);
   aspect-ratio: 3 / 0.5;
   border-radius: 12px;
-overflow: hidden;
+  overflow: hidden;
   i {
     display: none;
   }

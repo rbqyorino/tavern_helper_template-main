@@ -9,8 +9,8 @@ const props = defineProps<{
 
 // 定义事件
 const emit = defineEmits<{
-  toggleUI: [];
-  toggleAuto: [];
+toggleUI: [];
+toggleAuto: [];
   toggleLog: [];
   toggleMusic: [];
 }>();

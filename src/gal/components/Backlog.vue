@@ -6,11 +6,7 @@
     <!-- 中间对话列表区域 -->
     <div class="dialogue-list-wrapper">
       <div class="dialogue-list" ref="dialogueList" @scroll="handleScroll">
-        <div
-          v-for="(dialogue, index) in dialogues"
-          :key="index"
-          class="dialogue-item"
-        >
+        <div v-for="(dialogue, index) in dialogues" :key="index" class="dialogue-item">
           <!-- 左侧图标区 -->
           <div class="icon-column">
             <div
@@ -41,10 +37,7 @@
               {{ dialogue.speaker }}
             </div>
             <!-- 对话内容 -->
-            <div
-              class="dialogue-content"
-              :class="{ 'has-speaker': dialogue.speaker }"
-            >
+            <div class="dialogue-content" :class="{ 'has-speaker': dialogue.speaker }">
               {{ dialogue.content }}
             </div>
           </div>
@@ -73,19 +66,9 @@
       ></div>
 
       <!-- 滚动轨道 -->
-      <div
-        class="scroll-track"
-        :class="{ 'is-active': isDragging }"
-        ref="scrollTrack"
-        @click="handleTrackClick"
-      >
+      <div class="scroll-track" :class="{ 'is-active': isDragging }" ref="scrollTrack" @click="handleTrackClick">
         <!-- 滑块 -->
-        <div
-          class="scroll-thumb"
-          ref="scrollThumb"
-          :style="{ top: thumbPosition + 'px' }"
-          @mousedown="startDrag"
-        ></div>
+        <div class="scroll-thumb" ref="scrollThumb" :style="{ top: thumbPosition + 'px' }" @mousedown="startDrag"></div>
       </div>
 
       <!-- 向下单行 -->
@@ -141,7 +124,7 @@ const props = defineProps<{
 const dialogues = computed<Dialogue[]>(() => {
   const result: Dialogue[] = [];
 
-  props.allMessages.forEach((msg) => {
+  props.allMessages.forEach(msg => {
     const lines = msg.message.split('\n');
     let currentBg = '';
     let currentChars: Record<string, any> = {};
@@ -169,13 +152,17 @@ const dialogues = computed<Dialogue[]>(() => {
           speaker: null,
           content,
           background: currentBg,
-          characters: { ...currentChars }
+          characters: { ...currentChars },
         });
       }
 
       // 提取对话 - 角色对话
-      else if (trimmed.includes('|L1|') || trimmed.includes('|L2|') ||
-               trimmed.includes('|L3|') || trimmed.includes('|L4|')) {
+      else if (
+        trimmed.includes('|L1|') ||
+        trimmed.includes('|L2|') ||
+        trimmed.includes('|L3|') ||
+        trimmed.includes('|L4|')
+      ) {
         const parts = trimmed.split('|');
         if (parts.length >= 4) {
           const speaker = parts[0];
@@ -195,7 +182,7 @@ const dialogues = computed<Dialogue[]>(() => {
             speaker,
             content,
             background: currentBg,
-            characters: { ...currentChars }
+            characters: { ...currentChars },
           });
         }
       }
