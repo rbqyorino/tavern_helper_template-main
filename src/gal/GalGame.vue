@@ -1,5 +1,5 @@
 <template>
-  <div class="gal-container">
+  <div class="gal-container" :class="{ 'no-transition': isFastForwarding }">
     <!-- 背景层 -->
     <div class="background-layer">
       <transition name="bg-transition">
@@ -202,6 +202,9 @@ interface BacklogDialogue {
 // 历史对话数据
 const backlogDialogues = ref<BacklogDialogue[]>([]);
 
+// 快进模式状态（用于禁用过渡动画）
+const isFastForwarding = ref(false);
+
 // 初始化当前消息ID
 const initCurrentMessageId = () => {
   try {
@@ -346,6 +349,20 @@ const executePendingAction = async () => {
   }
 };
 
+// BGM 事件处理函数（提取到外部，确保引用一致）
+const updateBgmDuration = () => {
+  if (bgmAudio) {
+    bgmDuration.value = bgmAudio.duration;
+  }
+};
+
+const updateBgmTime = () => {
+  if (bgmAudio) {
+    bgmCurrentTime.value = bgmAudio.currentTime;
+    bgmIsPlaying.value = !bgmAudio.paused;
+  }
+};
+
 // 播放BGM
 const playBgm = (bgmName: string) => {
   const url = MessageParser.resolveAssetUrl(bgmName, 'audio');
@@ -360,21 +377,6 @@ const playBgm = (bgmName: string) => {
   bgmAudio = new Audio(url);
   bgmAudio.loop = true;
   bgmAudio.volume = bgmVolume.value;
-
-  // 监听音频元数据加载完成
-  const updateBgmDuration = () => {
-    if (bgmAudio) {
-      bgmDuration.value = bgmAudio.duration;
-    }
-  };
-
-  // 监听播放进度更新
-  const updateBgmTime = () => {
-    if (bgmAudio) {
-      bgmCurrentTime.value = bgmAudio.currentTime;
-      bgmIsPlaying.value = !bgmAudio.paused;
-    }
-  };
 
   bgmAudio.addEventListener('loadedmetadata', updateBgmDuration);
   bgmAudio.addEventListener('timeupdate', updateBgmTime);
@@ -414,6 +416,7 @@ const setCharacter = (
   characterName: string,
   sprite: string | undefined,
   isActive: boolean,
+  silent = false,
 ) => {
   if (!sprite) {
     // 角色移除时，停止呼吸动画
@@ -431,10 +434,13 @@ const setCharacter = (
     scale: 1,
   };
 
-  // 角色显示后，等待 DOM 更新再启动呼吸动画
-  nextTick(() => {
-    startBreathing(position);
-  });
+  // 静默模式下不启动呼吸动画
+  if (!silent) {
+    // 角色显示后，等待 DOM 更新再启动呼吸动画
+    nextTick(() => {
+      startBreathing(position);
+    });
+  }
 };
 
 // 执行角色动作
@@ -542,7 +548,7 @@ const processLine = async (line: string, silent = false) => {
   if (bg) {
     if (!silent) console.log('设置背景:', bg);
     setBackground(bg);
-    // 静默模式跳过延迟
+    // 静默模式跳过延迟，正常模式等待500ms让背景过渡完成
     if (!silent) {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -555,7 +561,7 @@ const processLine = async (line: string, silent = false) => {
     if (!silent) console.log('设置CG:', cg);
     setCg(cg);
     // 静默模式继续，正常模式暂停
-    return silent;
+    return silent ? true : false;
   }
 
   // 检查隐藏CG
@@ -563,7 +569,7 @@ const processLine = async (line: string, silent = false) => {
     if (!silent) console.log('隐藏CG');
     hideCg.value = true;
     // 静默模式继续，正常模式暂停
-    return silent;
+    return silent ? true : false;
   }
 
   // 处理BGM
@@ -580,7 +586,7 @@ const processLine = async (line: string, silent = false) => {
     if (!silent) console.log('显示选择:', parsedChoices);
     choices.value = parsedChoices;
     // 静默模式继续，正常模式暂停
-    return silent;
+    return silent ? true : false;
   }
 
   // 处理对话
@@ -602,20 +608,22 @@ const processLine = async (line: string, silent = false) => {
         if (!silent) {
           console.log(`设置角色 ${dialogue.characterName} 在位置 ${dialogue.position}`);
         }
-        setCharacter(dialogue.position, dialogue.characterName, dialogue.sprite, true);
+        setCharacter(dialogue.position, dialogue.characterName, dialogue.sprite, true, silent);
       }
 
-      // 保存动作，等待打字完成后执行
-      if (dialogue.action) {
-        if (!silent) console.log('保存待执行动作:', dialogue.action);
-        pendingAction.value = dialogue.action;
-      } else {
-        pendingAction.value = null;
+      // 静默模式下不保存和执行动作
+      if (!silent) {
+        if (dialogue.action) {
+          console.log('保存待执行动作:', dialogue.action);
+          pendingAction.value = dialogue.action;
+        } else {
+          pendingAction.value = null;
+        }
       }
     }
 
     if (silent) {
-      // 静默模式：直接显示完整文本，不播放打字机
+      // 静默模式：直接显示完整文本，不播放打字机，不保存动作
       displayedText.value = dialogue.content;
       return true; // 继续下一行
     } else {
@@ -859,21 +867,24 @@ const handleTogglePlayPause = () => {
 
 // 回溯到指定对话
 const jumpToDialogue = async (dialogue: BacklogDialogue) => {
-  console.log('回溯到对话:', dialogue);
+  console.log('跳转到对话:', dialogue);
 
   // 1. 关闭 Backlog
   showBacklog.value = false;
 
-  // 2. 完全重置游戏状态
+  // 2. 启用快进模式，禁用所有过渡动画
+  isFastForwarding.value = true;
+
+  // 3. 完全重置游戏状态（清空背景、BGM、角色、对话等）
   resetGameState();
 
-  // 3. 重新加载消息并快速播放到目标行
+  // 4. 重新加载消息并快速播放到目标行
   try {
     if (typeof getChatMessages !== 'undefined' && currentMessageId.value >= 0) {
       const messages = getChatMessages(currentMessageId.value);
 
       if (messages && messages[0]) {
-        // 分解消息为行（与handleMessage相同的逻辑）
+        // 分解消息为行
         const lines = messages[0].message
           .split('\n')
           .map(l => l.trim())
@@ -884,29 +895,43 @@ const jumpToDialogue = async (dialogue: BacklogDialogue) => {
         // 存储所有行
         allLines.value = lines;
 
-        // 4. 快速播放到目标行之前的所有行（静默模式）
+        // 5. 快速播放到目标行之前的所有行（设置背景、BGM、角色等）
         if (dialogue.lineIndex > 0) {
           console.log('开始快速播放从第 0 行到第', dialogue.lineIndex - 1, '行');
 
-          // 依次处理目标行之前的所有行（静默模式,瞬间完成)
           for (let i = 0; i < dialogue.lineIndex; i++) {
-            await processLine(allLines.value[i], true); // silent=true 快速执行
+            await processLine(lines[i], true); // silent=true 快速执行，无打字机、无动作、无过渡动画
           }
 
-          console.log('快速播放完成');
+          console.log('快速播放完成，场景已就位');
         }
 
-        // 5. 设置索引为目标行的前一个位置,通过 nextLine 自然播放目标行
-        // nextLine 会先 currentLineIndex++ 再处理,所以这里设置为 lineIndex - 1
-        console.log('准备播放目标行:', dialogue.lineIndex);
+        // 6. 等待一帧，确保所有资源（背景、角色等）都已渲染
+        await nextTick();
+
+        // 7. 关闭快进模式，恢复所有过渡动画
+        isFastForwarding.value = false;
+
+        // 8. 再次等待 DOM 更新，确保 no-transition 类已移除
+        await nextTick();
+
+        // 9. 设置索引为目标行的前一行
+        // 这样 nextLine() 会自增索引到目标行，然后正常播放
+        console.log('准备正常播放目标行:', dialogue.lineIndex);
         currentLineIndex.value = dialogue.lineIndex - 1;
 
-        // 调用 nextLine 让它自然地处理目标行 (会先++再播放)
+        // 10. 调用 nextLine()，它会：
+        //     - 自增 currentLineIndex 到 dialogue.lineIndex
+        //     - 正常播放目标行（有打字机效果、有动作、有动画）
         await nextLine();
+
+        console.log('跳转完成');
       }
     }
   } catch (error) {
-    console.error('回溯失败:', error);
+    console.error('跳转失败:', error);
+    // 确保出错时也恢复状态
+    isFastForwarding.value = false;
   }
 };
 
@@ -1068,6 +1093,23 @@ onUnmounted(() => {
   background: #000;
   font-family: 'Noto Serif CJK', serif;
   font-weight: normal;
+}
+
+// 禁用快进模式时的所有过渡动画
+.gal-container.no-transition {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .bg-transition-enter-active,
+  .bg-transition-leave-active,
+  .fade-enter-active,
+  .fade-leave-active,
+  .slide-down-enter-active,
+  .slide-down-leave-active {
+    transition: none !important;
+  }
 }
 
 // 背景层
