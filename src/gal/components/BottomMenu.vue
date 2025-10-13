@@ -9,10 +9,11 @@ const props = defineProps<{
 
 // 定义事件
 const emit = defineEmits<{
-toggleUI: [];
-toggleAuto: [];
+  toggleUI: [];
+  toggleAuto: [];
   toggleLog: [];
   toggleMusic: [];
+  toggleConfig: [];
 }>();
 
 // 响应式数据
@@ -64,6 +65,8 @@ function handleIconClick(iconName: string) {
     emit('toggleLog');
   } else if (iconName === 'voice') {
     emit('toggleMusic');
+  } else if (iconName === 'config') {
+    emit('toggleConfig');
   }
 }
 

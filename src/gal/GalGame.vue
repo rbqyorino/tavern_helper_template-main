@@ -86,6 +86,7 @@
       @toggle-auto="toggleAutoPlay"
       @toggle-log="openBacklog"
       @toggle-music="openMusicSettings"
+      @toggle-config="openConfigSettings"
     />
 
     <!-- Backlog 剧情回想 -->
@@ -114,6 +115,14 @@
         @toggle-play-pause="handleTogglePlayPause"
       />
     </transition>
+
+    <!-- 配置设置 -->
+    <transition name="fade">
+      <ConfigSettings
+        v-if="showConfigSettings"
+        @back="closeConfigSettings"
+      />
+    </transition>
   </div>
 </template>
 
@@ -124,6 +133,7 @@ import gsap from 'gsap';
 import BottomMenu from './components/BottomMenu.vue';
 import Backlog from './components/Backlog.vue';
 import MusicSettings from './components/MusicSettings.vue';
+import ConfigSettings from './components/ConfigSettings.vue';
 
 // 状态定义
 interface Character {
@@ -185,6 +195,9 @@ const bgmVolume = ref(0.5);
 const bgmCurrentTime = ref(0);
 const bgmDuration = ref(0);
 const bgmIsPlaying = ref(false);
+
+// ConfigSettings 状态
+const showConfigSettings = ref(false);
 
 // 当前消息ID
 const currentMessageId = ref<number>(-1);
@@ -823,6 +836,16 @@ const closeBacklog = () => {
   showBacklog.value = false;
 };
 
+// 处理滚轮事件
+const handleWheel = (event: WheelEvent) => {
+  // 只在未显示backlog、未隐藏UI、没有选择项时响应向上滚动
+  if (!showBacklog.value && !isUIHidden.value && choices.value.length === 0 && event.deltaY < -50) {
+    // 向上滚动且滚动幅度超过阈值
+    event.preventDefault();
+    openBacklog();
+  }
+};
+
 // 打开 MusicSettings
 const openMusicSettings = () => {
   console.log('打开音乐设置');
@@ -832,6 +855,17 @@ const openMusicSettings = () => {
 // 关闭 MusicSettings
 const closeMusicSettings = () => {
   showMusicSettings.value = false;
+};
+
+// 打开 ConfigSettings
+const openConfigSettings = () => {
+  console.log('打开配置设置');
+  showConfigSettings.value = true;
+};
+
+// 关闭 ConfigSettings
+const closeConfigSettings = () => {
+  showConfigSettings.value = false;
 };
 
 // 处理音量变化
@@ -1041,6 +1075,9 @@ onMounted(() => {
   // 初始化当前消息ID用于Backlog
   initCurrentMessageId();
 
+  // 注册滚轮监听器
+  window.addEventListener('wheel', handleWheel, { passive: false });
+
   // 获取当前消息
   try {
     if (typeof getCurrentMessageId !== 'undefined' && typeof getChatMessages !== 'undefined') {
@@ -1064,6 +1101,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  // 移除滚轮监听器
+  window.removeEventListener('wheel', handleWheel);
+
   // 清理所有呼吸动画
   Object.keys(characters.value).forEach(pos => {
     stopBreathing(pos);
