@@ -15,11 +15,7 @@
         <div class="volume-section-title">音量</div>
         <div class="slider-container">
           <span class="volume-label">0%</span>
-          <div
-            class="slider-track"
-            ref="volumeTrack"
-            @click="handleVolumeTrackClick"
-          >
+          <div class="slider-track" ref="volumeTrack" @click="handleVolumeTrackClick">
             <div
               class="slider-thumb"
               ref="volumeThumb"
@@ -37,11 +33,7 @@
         <div class="progress-section-title">进度</div>
         <div class="slider-container">
           <span class="progress-label">{{ formatTime(currentTime) }}</span>
-          <div
-            class="slider-track"
-            ref="progressTrack"
-            @click="handleProgressTrackClick"
-          >
+          <div class="slider-track" ref="progressTrack" @click="handleProgressTrackClick">
             <div
               class="slider-thumb"
               ref="progressThumb"
@@ -51,10 +43,7 @@
           </div>
           <span class="progress-label">{{ formatTime(duration) }}</span>
         </div>
-        <div
-          class="play-pause-button"
-          @click.stop="togglePlayPause"
-        >
+        <div class="play-pause-button" @click.stop="togglePlayPause">
           <span v-if="isPlaying" class="pause-icon">⏸</span>
           <span v-else class="play-icon">▶</span>
         </div>
@@ -117,7 +106,7 @@ const formatTime = (seconds: number): string => {
 const updateVolumeThumbPosition = () => {
   if (!volumeTrack.value) return;
   const trackWidth = volumeTrack.value.clientWidth;
-  const thumbWidth = 30;
+  const thumbWidth = 75;
   volumeThumbPosition.value = props.volume * (trackWidth - thumbWidth);
 };
 
@@ -125,7 +114,7 @@ const updateVolumeThumbPosition = () => {
 const updateProgressThumbPosition = () => {
   if (!progressTrack.value || props.duration === 0) return;
   const trackWidth = progressTrack.value.clientWidth;
-  const thumbWidth = 30;
+  const thumbWidth = 75;
   const ratio = props.currentTime / props.duration;
   progressThumbPosition.value = ratio * (trackWidth - thumbWidth);
 };
@@ -143,7 +132,7 @@ const handleVolumeTrackClick = (event: MouseEvent) => {
   const trackRect = volumeTrack.value.getBoundingClientRect();
   const clickX = event.clientX - trackRect.left;
   const trackWidth = volumeTrack.value.clientWidth;
-  const thumbWidth = 30;
+  const thumbWidth = 75;
 
   const ratio = Math.max(0, Math.min(1, clickX / (trackWidth - thumbWidth)));
   emit('volumeChange', ratio);
@@ -157,7 +146,7 @@ const handleProgressTrackClick = (event: MouseEvent) => {
   const trackRect = progressTrack.value.getBoundingClientRect();
   const clickX = event.clientX - trackRect.left;
   const trackWidth = progressTrack.value.clientWidth;
-  const thumbWidth = 30;
+  const thumbWidth = 75;
 
   const ratio = Math.max(0, Math.min(1, clickX / (trackWidth - thumbWidth)));
   emit('seek', ratio * props.duration);
@@ -179,7 +168,7 @@ const onVolumeDrag = (event: MouseEvent) => {
 
   const deltaX = event.clientX - dragStartX.value;
   const trackWidth = volumeTrack.value.clientWidth;
-  const thumbWidth = 30;
+  const thumbWidth = 75;
   const maxThumbPos = trackWidth - thumbWidth;
 
   const newThumbPos = Math.max(0, Math.min(maxThumbPos, dragStartThumbPos.value + deltaX));
@@ -211,7 +200,7 @@ const onProgressDrag = (event: MouseEvent) => {
 
   const deltaX = event.clientX - dragStartX.value;
   const trackWidth = progressTrack.value.clientWidth;
-  const thumbWidth = 30;
+  const thumbWidth = 75;
   const maxThumbPos = trackWidth - thumbWidth;
 
   const newThumbPos = Math.max(0, Math.min(maxThumbPos, dragStartThumbPos.value + deltaX));
@@ -435,13 +424,12 @@ onUnmounted(() => {
 .slider-thumb {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
-  background: #453118;
-  border-radius: 50%;
+  transform: translateY(-50%) rotate(90deg); // 旋转90度使竖向图片变横向
+  width: 50px; // 调整为 75px (30 * 2.5) 以完美匹配 spin.png 旋转后的比例
+  height: 50px; // 恢复为 30px
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/spin.png') no-repeat center;
+  background-size: contain;
   cursor: grab;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 
   &:active {
     cursor: grabbing;
