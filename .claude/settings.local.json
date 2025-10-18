@@ -12,7 +12,9 @@
       "Bash(pnpm run:gal:*)",
       "Bash(pnpm build:*)",
       "Bash(git checkout:*)",
-      "Bash(pnpm run:gal:build:*)"
+      "Bash(pnpm run:gal:build:*)",
+      "Bash(pnpm build:gal:*)",
+      "Bash(pnpm build:dev:*)"
     ],
     "deny": [],
     "ask": []

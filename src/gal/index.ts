@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import App from './GalGame.vue';
 import './styles.scss';
 
@@ -13,6 +14,11 @@ $(() => {
   try {
     const app = createApp(App);
     console.log('Vue app 创建成功');
+
+    // 创建并注册 Pinia（必须在 mount 之前）
+    const pinia = createPinia();
+    app.use(pinia);
+    console.log('Pinia 已注册');
 
     const mountedApp = app.mount('#app');
     console.log('Vue app 挂载成功:', mountedApp);

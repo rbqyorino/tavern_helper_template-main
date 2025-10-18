@@ -38,14 +38,14 @@
     <!-- 对话框层 -->
     <div v-show="!isUIHidden" class="dialogue-layer" @click="handleDialogueClick">
       <!-- 主对话框 -->
-      <div class="dialogue-box">
+      <div class="dialogue-box" :style="{ '--dialogue-bg-opacity': opacity }">
         <!-- 名字框 -->
         <div v-if="currentDialogue && currentDialogue.type === 'character'" class="character-name-box">
           <span class="character-name">{{ currentDialogue.characterName }}</span>
         </div>
 
         <!-- 对话内容 -->
-        <div class="dialogue-content">
+        <div class="dialogue-content" :style="{ fontSize: fontSize + 'px' }">
           <span ref="dialogueText">{{ displayedText }}</span>
           <span v-if="isTyping" class="typing-cursor"></span>
         </div>
@@ -134,6 +134,12 @@ import BottomMenu from './components/BottomMenu.vue';
 import Backlog from './components/Backlog.vue';
 import MusicSettings from './components/MusicSettings.vue';
 import ConfigSettings from './components/ConfigSettings.vue';
+import { useConfigStore } from './stores/config';
+import { storeToRefs } from 'pinia';
+
+// 使用配置 store
+const configStore = useConfigStore();
+const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity } = storeToRefs(configStore);
 
 // 状态定义
 interface Character {
@@ -182,8 +188,7 @@ let autoPlayTimer: ReturnType<typeof setTimeout> | null = null;
 let bgmAudio: HTMLAudioElement | null = null;
 let typingInterval: ReturnType<typeof setInterval> | null = null;
 
-// 呼吸特效状态和动画实例
-const breathingEnabled = ref(true); // 呼吸特效开关
+// 呼吸特效动画实例
 const breathingAnimations = new Map<string, gsap.core.Tween>(); // 存储每个角色的呼吸动画
 
 // Backlog 状态
@@ -257,7 +262,7 @@ const getCharacterStyle = (pos: string) => {
 
 // 启动角色呼吸动画
 const startBreathing = (pos: string) => {
-  if (!breathingEnabled.value) return;
+  if (!breathingEffect.value) return;
 
   // 如果已经有动画在运行，先停止
   stopBreathing(pos);
@@ -292,10 +297,8 @@ const stopBreathing = (pos: string) => {
   }
 };
 
-// 切换呼吸特效开关
-const toggleBreathing = (enabled: boolean) => {
-  breathingEnabled.value = enabled;
-
+// 监听呼吸特效配置变化
+watch(breathingEffect, (enabled) => {
   if (enabled) {
     // 开启：为所有现有角色启动呼吸动画
     Object.keys(characters.value).forEach(pos => {
@@ -309,7 +312,7 @@ const toggleBreathing = (enabled: boolean) => {
       stopBreathing(pos);
     });
   }
-};
+});
 
 // 处理选择点击
 const selectChoice = (choice: string) => {
@@ -322,7 +325,7 @@ const selectChoice = (choice: string) => {
 };
 
 // 打字机效果
-const typeWriter = (text: string, speed = 50) => {
+const typeWriter = (text: string) => {
   displayedText.value = '';
   isTyping.value = true;
 
@@ -331,6 +334,9 @@ const typeWriter = (text: string, speed = 50) => {
   if (typingInterval) {
     clearInterval(typingInterval);
   }
+
+  // 使用配置中的文本速度
+  const speed = configStore.getTypingSpeed();
 
   typingInterval = setInterval(() => {
     if (index < text.length) {
@@ -747,12 +753,13 @@ const scheduleAutoPlay = () => {
     return; // 打字机完成时会再次调用 scheduleAutoPlay
   }
 
-  // 等待 0.5 秒后自动点击
+  // 使用配置中的自动播放延迟
+  const delay = configStore.getAutoPlayDelay();
   autoPlayTimer = setTimeout(() => {
     if (isAutoPlaying.value) {
       nextLine();
     }
-  }, 1000);
+  }, delay);
 };
 
 // 切换自动播放状态
@@ -838,11 +845,32 @@ const closeBacklog = () => {
 
 // 处理滚轮事件
 const handleWheel = (event: WheelEvent) => {
-  // 只在未显示backlog、未隐藏UI、没有选择项时响应向上滚动
+  // 向上滚动：打开 backlog
   if (!showBacklog.value && !isUIHidden.value && choices.value.length === 0 && event.deltaY < -50) {
-    // 向上滚动且滚动幅度超过阈值
     event.preventDefault();
     openBacklog();
+    return;
+  }
+
+  // 向下滚动：推进对话（需要启用快捷键）
+  if (keyboardShortcut.value && !showBacklog.value && !isUIHidden.value && event.deltaY > 50) {
+    event.preventDefault();
+    handleDialogueClick();
+  }
+};
+
+// 处理键盘事件（快捷键推进对话）
+const handleKeydown = (event: KeyboardEvent) => {
+  // 只有启用快捷键时才响应
+  if (!keyboardShortcut.value) return;
+
+  // 如果显示了 backlog、UI 隐藏或有选择项，不响应快捷键
+  if (showBacklog.value || isUIHidden.value || showMusicSettings.value || showConfigSettings.value) return;
+
+  // 空格键或方向键↓推进对话
+  if (event.code === 'Space' || event.code === 'ArrowDown') {
+    event.preventDefault();
+    handleDialogueClick();
   }
 };
 
@@ -1072,11 +1100,17 @@ const handleMessage = async (message: string) => {
 onMounted(() => {
   console.log('GAL游戏界面已加载');
 
+  // 加载配置
+  configStore.loadConfig();
+
   // 初始化当前消息ID用于Backlog
   initCurrentMessageId();
 
   // 注册滚轮监听器
   window.addEventListener('wheel', handleWheel, { passive: false });
+
+  // 注册键盘监听器
+  window.addEventListener('keydown', handleKeydown);
 
   // 获取当前消息
   try {
@@ -1103,6 +1137,9 @@ onMounted(() => {
 onUnmounted(() => {
   // 移除滚轮监听器
   window.removeEventListener('wheel', handleWheel);
+
+  // 移除键盘监听器
+  window.removeEventListener('keydown', handleKeydown);
 
   // 清理所有呼吸动画
   Object.keys(characters.value).forEach(pos => {
@@ -1261,7 +1298,7 @@ onUnmounted(() => {
   padding: 0 8% 0 5%;
 }
 
-// 对话框背景图片 - 半透明
+// 对话框背景图片 - 使用 CSS 变量控制不透明度
 .dialogue-box::before {
   content: '';
   position: absolute;
@@ -1270,7 +1307,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.png') no-repeat center / cover;
-  opacity: 0.7;
+  opacity: var(--dialogue-bg-opacity, 0.7);
   z-index: 0;
   pointer-events: none;
 }
@@ -1321,7 +1358,7 @@ onUnmounted(() => {
 }
 
 .dialogue-content {
-  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  // 字体大小由内联样式控制，不再使用固定值
   color: #ffffff;
   line-height: 1.8;
   width: 100%;
