@@ -106,7 +106,7 @@ const formatTime = (seconds: number): string => {
 const updateVolumeThumbPosition = () => {
   if (!volumeTrack.value) return;
   const trackWidth = volumeTrack.value.clientWidth;
-  const thumbWidth = 75;
+  const thumbWidth = 50;
   volumeThumbPosition.value = props.volume * (trackWidth - thumbWidth);
 };
 
@@ -114,7 +114,7 @@ const updateVolumeThumbPosition = () => {
 const updateProgressThumbPosition = () => {
   if (!progressTrack.value || props.duration === 0) return;
   const trackWidth = progressTrack.value.clientWidth;
-  const thumbWidth = 75;
+  const thumbWidth = 50;
   const ratio = props.currentTime / props.duration;
   progressThumbPosition.value = ratio * (trackWidth - thumbWidth);
 };
@@ -132,7 +132,7 @@ const handleVolumeTrackClick = (event: MouseEvent) => {
   const trackRect = volumeTrack.value.getBoundingClientRect();
   const clickX = event.clientX - trackRect.left;
   const trackWidth = volumeTrack.value.clientWidth;
-  const thumbWidth = 75;
+  const thumbWidth = 50;
 
   const ratio = Math.max(0, Math.min(1, clickX / (trackWidth - thumbWidth)));
   emit('volumeChange', ratio);
@@ -146,7 +146,7 @@ const handleProgressTrackClick = (event: MouseEvent) => {
   const trackRect = progressTrack.value.getBoundingClientRect();
   const clickX = event.clientX - trackRect.left;
   const trackWidth = progressTrack.value.clientWidth;
-  const thumbWidth = 75;
+  const thumbWidth = 50;
 
   const ratio = Math.max(0, Math.min(1, clickX / (trackWidth - thumbWidth)));
   emit('seek', ratio * props.duration);
@@ -168,7 +168,7 @@ const onVolumeDrag = (event: MouseEvent) => {
 
   const deltaX = event.clientX - dragStartX.value;
   const trackWidth = volumeTrack.value.clientWidth;
-  const thumbWidth = 75;
+  const thumbWidth = 50;
   const maxThumbPos = trackWidth - thumbWidth;
 
   const newThumbPos = Math.max(0, Math.min(maxThumbPos, dragStartThumbPos.value + deltaX));
@@ -200,7 +200,7 @@ const onProgressDrag = (event: MouseEvent) => {
 
   const deltaX = event.clientX - dragStartX.value;
   const trackWidth = progressTrack.value.clientWidth;
-  const thumbWidth = 75;
+  const thumbWidth = 50;
   const maxThumbPos = trackWidth - thumbWidth;
 
   const newThumbPos = Math.max(0, Math.min(maxThumbPos, dragStartThumbPos.value + deltaX));
