@@ -22,7 +22,7 @@
 
     <!-- 角色立绘层 -->
     <div class="character-layer">
-      <div v-for="pos in ['L1', 'L2', 'L3', 'L4']" :key="pos" :class="['character-slot', `position-${pos}`]">
+      <div v-for="pos in ['L1', 'L2', 'L3', 'L4', 'L5']" :key="pos" :class="['character-slot', `position-${pos}`]">
         <transition name="fade">
           <img
             v-if="characters[pos]"
@@ -161,6 +161,7 @@ const characters = ref<Record<string, Character | undefined>>({
   L2: undefined,
   L3: undefined,
   L4: undefined,
+  L5: undefined,
 });
 
 const currentDialogue = ref<DialogueContent | undefined>();
@@ -431,7 +432,7 @@ const setCg = (cg: string) => {
 
 // 设置角色
 const setCharacter = (
-  position: 'L1' | 'L2' | 'L3' | 'L4',
+  position: 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
   characterName: string,
   sprite: string | undefined,
   isActive: boolean,
@@ -799,6 +800,7 @@ const resetGameState = () => {
     L2: undefined,
     L3: undefined,
     L4: undefined,
+    L5: undefined,
   };
 
   // 停止并重置BGM
@@ -1019,6 +1021,7 @@ const parseHistoryDialogues = () => {
             L2: undefined,
             L3: undefined,
             L4: undefined,
+            L5: undefined,
           };
 
           lines.forEach((line, lineIndex) => {
@@ -1259,6 +1262,21 @@ onUnmounted(() => {
   align-items: flex-end;
   justify-content: center;
   overflow: visible; // 允许动画超出容器边界
+}
+
+// 设置 z-index 实现显示优先级: L3 > L4=L2 > L5=L1
+.position-L1,
+.position-L5 {
+  z-index: 30;
+}
+
+.position-L2,
+.position-L4 {
+  z-index: 40;
+}
+
+.position-L3 {
+  z-index: 50;
 }
 
 .character-sprite {
