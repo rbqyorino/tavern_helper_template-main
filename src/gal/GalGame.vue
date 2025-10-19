@@ -1257,7 +1257,7 @@ onUnmounted(() => {
 
 .character-slot {
   flex: 1;
-  height: 80%;
+  height: 96%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1280,8 +1280,8 @@ onUnmounted(() => {
 }
 
 .character-sprite {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 120%;
+  max-height: 120%;
   object-fit: contain;
   transition:
     filter 0.3s ease,
