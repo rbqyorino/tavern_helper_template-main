@@ -1208,18 +1208,38 @@ onUnmounted(() => {
   object-fit: cover;
 }
 
-// 背景切换动画
-.bg-transition-enter-active,
-.bg-transition-leave-active {
-  transition: opacity 1s ease;
+// 背景切换动画 - 从左往右擦除效果
+.bg-transition-enter-active {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  animation: wipeFromLeft 2s ease-in-out;
+  z-index: 2; // 确保新背景在旧背景上方
 }
 
-.bg-transition-enter-from {
-  opacity: 0;
+.bg-transition-leave-active {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 1.7s ease-in-out;
+  z-index: 1; // 旧背景在下方
 }
 
 .bg-transition-leave-to {
-  opacity: 0;
+  opacity: 1; // 保持旧背景可见，直到被新背景完全覆盖
+}
+
+@keyframes wipeFromLeft {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 // CG层
