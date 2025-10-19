@@ -118,10 +118,7 @@
 
     <!-- 配置设置 -->
     <transition name="fade">
-      <ConfigSettings
-        v-if="showConfigSettings"
-        @back="closeConfigSettings"
-      />
+      <ConfigSettings v-if="showConfigSettings" @back="closeConfigSettings" />
     </transition>
   </div>
 </template>
@@ -299,7 +296,7 @@ const stopBreathing = (pos: string) => {
 };
 
 // 监听呼吸特效配置变化
-watch(breathingEffect, (enabled) => {
+watch(breathingEffect, enabled => {
   if (enabled) {
     // 开启：为所有现有角色启动呼吸动画
     Object.keys(characters.value).forEach(pos => {
@@ -490,10 +487,10 @@ const performAction = (characterName: string, actionType: string) => {
       // 双方向抖动：从右到左再回来
       gsap.fromTo(
         element,
-        { x: 30 },
+        { x: 20 },
         {
-          x: -30,
-          duration: 0.1,
+          x: -20,
+          duration: 0.15,
           repeat: 5,
           yoyo: true,
           ease: 'power1.inOut',
@@ -536,9 +533,9 @@ const performAction = (characterName: string, actionType: string) => {
       break;
 
     case 'near':
-      char.scale = 1.2;
+      char.scale = 1.5;
       gsap.to(element, {
-        scale: 1.2,
+        scale: 1.5,
         duration: 0.5,
         ease: 'power2.out',
       });
@@ -1505,7 +1502,7 @@ onUnmounted(() => {
 // 淡入淡出动画
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.5s ease;
+  transition: opacity 1s ease;
 }
 
 .fade-enter-from,
