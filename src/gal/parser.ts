@@ -36,6 +36,11 @@ export interface MoveCommand {
   position: 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
 }
 
+export interface ActionCommand {
+  character: string;
+  type: 'shake' | 'jump_up' | 'jump_down' | 'near' | 'away';
+}
+
 export class MessageParser {
   // 解析背景 [bg|图片链接或别名]
   static parseBg(text: string): string | undefined {
@@ -72,7 +77,7 @@ export class MessageParser {
     return choices.length > 0 ? choices : undefined;
   }
 
-  // 解析动作 [action|角色名|动作类型]
+  // 解析动作 [action|角色名|动作类型] - 用于对话内容中的动作提取
   static parseAction(text: string): { character: string; type: string } | undefined {
     const match = text.match(/\[action\|([^|]+)\|([^\]]+)\]/);
     if (!match) return undefined;
@@ -80,6 +85,17 @@ export class MessageParser {
     return {
       character: match[1].trim(),
       type: match[2].trim(),
+    };
+  }
+
+  // 解析单独成行的动作指令 [action|角色名|动作类型]
+  static parseStandaloneAction(text: string): ActionCommand | undefined {
+    const match = text.match(/^\[action\|([^|]+)\|([^\]]+)\]$/);
+    if (!match) return undefined;
+
+    return {
+      character: match[1].trim(),
+      type: match[2].trim() as 'shake' | 'jump_up' | 'jump_down' | 'near' | 'away',
     };
   }
 

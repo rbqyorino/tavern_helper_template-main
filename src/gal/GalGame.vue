@@ -477,7 +477,7 @@ const handleShow = (name: string, sprite: string, position: string, silent = fal
 };
 
 // 处理立绘变更 [alter|角色名|立绘]
-const handleAlter = (name: string, sprite: string, silent = false) => {
+const handleAlter = async (name: string, sprite: string, silent = false) => {
   const position = characterPositions.value.get(name);
   if (!position) {
     console.warn(`未找到角色: ${name}，无法更改立绘`);
@@ -491,9 +491,34 @@ const handleAlter = (name: string, sprite: string, silent = false) => {
   const character = characters.value[position];
   if (!character) return;
 
-  // 更新立绘URL
+  // 保存当前激活状态和缩放
+  const isActive = character.isActive;
+  const scale = character.scale;
+
+  // 先淡出（移除角色触发 fade-leave）
+  stopBreathing(position);
+  characters.value[position] = undefined;
+
+  // 等待淡出动画完成（fade transition 持续时间）
+  if (!silent) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  // 再淡入（添加新立绘触发 fade-enter）
   const url = MessageParser.resolveAssetUrl(sprite, 'image');
-  character.sprite = url;
+  characters.value[position] = {
+    name,
+    sprite: url,
+    isActive,
+    scale,
+  };
+
+  // 启动呼吸动画
+  if (!silent) {
+    nextTick(() => {
+      startBreathing(position);
+    });
+  }
 };
 
 // 处理角色离场 [leave|角色名]
@@ -593,7 +618,7 @@ const performAction = (characterName: string, actionType: string) => {
         { x: 20 },
         {
           x: -20,
-          duration: 0.3,
+          duration: 0.2,
           repeat: 4,
           yoyo: true,
           ease: 'power1.inOut',
@@ -607,7 +632,7 @@ const performAction = (characterName: string, actionType: string) => {
     case 'jump_up':
     
       gsap.to(element, {
-        y: -80,
+        y: -90,
         duration: 0.4,
         ease: 'power2.out',
         onComplete: () => {
@@ -711,7 +736,7 @@ const processLine = async (line: string, silent = false) => {
   // 处理立绘变更 [alter|角色名|立绘]
   const alterCmd = MessageParser.parseAlter(line);
   if (alterCmd) {
-    handleAlter(alterCmd.name, alterCmd.sprite, silent);
+    await handleAlter(alterCmd.name, alterCmd.sprite, silent);
     // 静默模式继续，正常模式暂停
     return silent ? true : false;
   }
@@ -730,6 +755,17 @@ const processLine = async (line: string, silent = false) => {
     await handleMove(moveCmd.name, moveCmd.position, silent);
     // 静默模式继续，正常模式暂停
     return silent ? true : false;
+  }
+
+  // 处理单独成行的动作指令 [action|角色名|动作类型] - 模式2
+  const standaloneAction = MessageParser.parseStandaloneAction(line);
+  if (standaloneAction) {
+    if (!silent) {
+      console.log('执行单独动作:', standaloneAction);
+      performAction(standaloneAction.character, standaloneAction.type);
+    }
+    // 静默模式继续，正常模式继续处理下一行（动作指令不暂停）
+    return true;
   }
 
   // 处理选择
