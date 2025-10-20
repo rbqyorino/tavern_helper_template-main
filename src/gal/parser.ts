@@ -13,12 +13,27 @@ export interface DialogueContent {
   type: 'narrator' | 'character';
   content: string;
   characterName?: string;
-  position?: 'L1' | 'L2' | 'L3' | 'L4';
-  sprite?: string;
   action?: {
     character: string;
     type: 'shake' | 'jump_up' | 'jump_down' | 'near' | 'away';
   };
+}
+
+// 新增指令接口
+export interface ShowCommand {
+  name: string;
+  sprite: string;
+  position: 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+}
+
+export interface AlterCommand {
+  name: string;
+  sprite: string;
+}
+
+export interface MoveCommand {
+  name: string;
+  position: 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
 }
 
 export class MessageParser {
@@ -68,37 +83,74 @@ export class MessageParser {
     };
   }
 
-  // 解析对话内容
+  // 解析角色登场 [show|角色名|立绘名|位置]
+  static parseShow(text: string): ShowCommand | undefined {
+    const match = text.match(/^\[show\|([^|]+)\|([^|]+)\|([^\]]+)\]$/);
+    if (!match) return undefined;
+
+    return {
+      name: match[1].trim(),
+      sprite: match[2].trim(),
+      position: match[3].trim() as 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
+    };
+  }
+
+  // 解析立绘变更 [alter|角色名|立绘名]
+  static parseAlter(text: string): AlterCommand | undefined {
+    const match = text.match(/^\[alter\|([^|]+)\|([^\]]+)\]$/);
+    if (!match) return undefined;
+
+    return {
+      name: match[1].trim(),
+      sprite: match[2].trim(),
+    };
+  }
+
+  // 解析角色离场 [leave|角色名]
+  static parseLeave(text: string): string | undefined {
+    const match = text.match(/^\[leave\|([^\]]+)\]$/);
+    return match ? match[1].trim() : undefined;
+  }
+
+  // 解析角色移动 [move|角色名|位置]
+  static parseMove(text: string): MoveCommand | undefined {
+    const match = text.match(/^\[move\|([^|]+)\|([^\]]+)\]$/);
+    if (!match) return undefined;
+
+    return {
+      name: match[1].trim(),
+      position: match[2].trim() as 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
+    };
+  }
+
+  // 解析对话内容 - 新格式: 角色名|对话内容[action|角色名|动作]
   static parseDialogue(text: string): DialogueContent | undefined {
-    // 旁白格式: 旁白||${旁白内容}
-    const narratorMatch = text.match(/^旁白\|\|(.+)/);
-    if (narratorMatch) {
+    // 对话格式: ${角色名}|${对话内容}
+    const dialogueMatch = text.match(/^([^|]+)\|(.+)$/);
+    if (!dialogueMatch) return undefined;
+
+    const [, name, content] = dialogueMatch;
+    const characterName = name.trim();
+
+    // 提取动作指令（必须在末尾）
+    const action = this.parseAction(content);
+    const cleanContent = content.replace(/\[action\|[^\]]+\]/, '').trim();
+
+    // 判断是否为旁白
+    if (characterName === '旁白') {
       return {
         type: 'narrator',
-        content: narratorMatch[1].trim(),
-      };
-    }
-
-    // 角色对话格式: ${角色名}|${位置}|${立绘名}|${对话内容}
-    const dialogueMatch = text.match(/^([^|]+)\|([^|]*)\|([^|]*)\|(.+)/);
-    if (dialogueMatch) {
-      const [, characterName, position, sprite, content] = dialogueMatch;
-
-      // 提取动作指令
-      const action = this.parseAction(content);
-      const cleanContent = content.replace(/\[action\|[^\]]+\]/, '').trim();
-
-      return {
-        type: 'character',
-        characterName: characterName.trim(),
-        position: (position.trim() || undefined) as 'L1' | 'L2' | 'L3' | 'L4' | undefined,
-        sprite: sprite.trim() || undefined,
         content: cleanContent,
-        action,
       };
     }
 
-    return undefined;
+    // 角色对话
+    return {
+      type: 'character',
+      characterName,
+      content: cleanContent,
+      action,
+    };
   }
 
   // 完整解析消息

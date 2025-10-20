@@ -161,6 +161,9 @@ const characters = ref<Record<string, Character | undefined>>({
   L5: undefined,
 });
 
+// 角色名到位置的映射
+const characterPositions = ref<Map<string, string>>(new Map());
+
 const currentDialogue = ref<DialogueContent | undefined>();
 const displayedText = ref('');
 const isTyping = ref(false);
@@ -460,6 +463,106 @@ const setCharacter = (
   }
 };
 
+// 处理角色登场 [show|角色名|立绘|位置]
+const handleShow = (name: string, sprite: string, position: string, silent = false) => {
+  if (!silent) {
+    console.log(`角色登场: ${name} 在位置 ${position}`);
+  }
+
+  // 设置角色立绘（非激活状态）
+  setCharacter(position, name, sprite, false, silent);
+
+  // 记录角色名到位置的映射
+  characterPositions.value.set(name, position);
+};
+
+// 处理立绘变更 [alter|角色名|立绘]
+const handleAlter = (name: string, sprite: string, silent = false) => {
+  const position = characterPositions.value.get(name);
+  if (!position) {
+    console.warn(`未找到角色: ${name}，无法更改立绘`);
+    return;
+  }
+
+  if (!silent) {
+    console.log(`更改立绘: ${name} -> ${sprite}`);
+  }
+
+  const character = characters.value[position];
+  if (!character) return;
+
+  // 更新立绘URL
+  const url = MessageParser.resolveAssetUrl(sprite, 'image');
+  character.sprite = url;
+};
+
+// 处理角色离场 [leave|角色名]
+const handleLeave = (name: string, silent = false) => {
+  const position = characterPositions.value.get(name);
+  if (!position) {
+    console.warn(`未找到角色: ${name}，无法离场`);
+    return;
+  }
+
+  if (!silent) {
+    console.log(`角色离场: ${name}`);
+  }
+
+  // 停止呼吸动画
+  stopBreathing(position);
+
+  // 移除角色立绘
+  characters.value[position] = undefined;
+
+  // 删除映射
+  characterPositions.value.delete(name);
+};
+
+// 处理角色移动 [move|角色名|新位置] - 使用淡入淡出效果
+const handleMove = async (name: string, newPosition: string, silent = false) => {
+  const oldPosition = characterPositions.value.get(name);
+  if (!oldPosition) {
+    console.warn(`未找到角色: ${name}，无法移动`);
+    return;
+  }
+
+  const character = characters.value[oldPosition];
+  if (!character) return;
+
+  if (!silent) {
+    console.log(`角色移动: ${name} 从 ${oldPosition} 到 ${newPosition}`);
+  }
+
+  // 1. 停止旧位置的呼吸动画
+  stopBreathing(oldPosition);
+
+  // 2. 淡出（旧位置）
+  characters.value[oldPosition] = undefined;
+
+  // 3. 等待淡出动画完成（Vue transition fade 时长约 300ms）
+  if (!silent) {
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+
+  // 4. 淡入（新位置）
+  characters.value[newPosition] = {
+    name: character.name,
+    sprite: character.sprite,
+    isActive: character.isActive,
+    scale: character.scale || 1,
+  };
+
+  // 5. 更新映射
+  characterPositions.value.set(name, newPosition);
+
+  // 6. 重新启动呼吸动画
+  if (!silent) {
+    nextTick(() => {
+      startBreathing(newPosition);
+    });
+  }
+};
+
 // 执行角色动作
 const performAction = (characterName: string, actionType: string) => {
   // 根据角色名称找到角色所在位置
@@ -502,9 +605,9 @@ const performAction = (characterName: string, actionType: string) => {
       break;
 
     case 'jump_up':
-      // 使用 translateY 而不是 y，避免被父容器裁剪
+    
       gsap.to(element, {
-        y: -40,
+        y: -80,
         duration: 0.4,
         ease: 'power2.out',
         onComplete: () => {
@@ -519,7 +622,7 @@ const performAction = (characterName: string, actionType: string) => {
 
     case 'jump_down':
       gsap.to(element, {
-        y: 40,
+        y: 80, 
         duration: 0.4,
         ease: 'power2.out',
         onComplete: () => {
@@ -597,6 +700,38 @@ const processLine = async (line: string, silent = false) => {
     return true; // 继续处理下一行
   }
 
+  // 处理角色登场 [show|角色名|立绘|位置]
+  const showCmd = MessageParser.parseShow(line);
+  if (showCmd) {
+    handleShow(showCmd.name, showCmd.sprite, showCmd.position, silent);
+    // 静默模式继续，正常模式暂停
+    return silent ? true : false;
+  }
+
+  // 处理立绘变更 [alter|角色名|立绘]
+  const alterCmd = MessageParser.parseAlter(line);
+  if (alterCmd) {
+    handleAlter(alterCmd.name, alterCmd.sprite, silent);
+    // 静默模式继续，正常模式暂停
+    return silent ? true : false;
+  }
+
+  // 处理角色离场 [leave|角色名]
+  const leaveName = MessageParser.parseLeave(line);
+  if (leaveName) {
+    handleLeave(leaveName, silent);
+    // 静默模式继续，正常模式暂停
+    return silent ? true : false;
+  }
+
+  // 处理角色移动 [move|角色名|位置]
+  const moveCmd = MessageParser.parseMove(line);
+  if (moveCmd) {
+    await handleMove(moveCmd.name, moveCmd.position, silent);
+    // 静默模式继续，正常模式暂停
+    return silent ? true : false;
+  }
+
   // 处理选择
   const parsedChoices = MessageParser.parseChoices(line);
   if (parsedChoices) {
@@ -606,26 +741,31 @@ const processLine = async (line: string, silent = false) => {
     return silent ? true : false;
   }
 
-  // 处理对话
+  // 处理对话 - 新格式: 角色名|对话内容[action|角色名|动作]
   const dialogue = MessageParser.parseDialogue(line);
   if (dialogue) {
     if (!silent) console.log('显示对话:', dialogue);
     currentDialogue.value = dialogue;
 
-    if (dialogue.type === 'character') {
-      // 设置所有角色为非激活状态
-      Object.keys(characters.value).forEach(pos => {
-        if (characters.value[pos]) {
-          characters.value[pos]!.isActive = false;
-        }
-      });
+    if (dialogue.type === 'character' && dialogue.characterName) {
+      // 从映射中查找角色位置
+      const position = characterPositions.value.get(dialogue.characterName);
 
-      // 设置当前说话角色
-      if (dialogue.position && dialogue.sprite && dialogue.characterName) {
-        if (!silent) {
-          console.log(`设置角色 ${dialogue.characterName} 在位置 ${dialogue.position}`);
+      if (position) {
+        // 设置所有角色为非激活状态
+        Object.keys(characters.value).forEach(pos => {
+          if (characters.value[pos]) {
+            characters.value[pos]!.isActive = false;
+          }
+        });
+
+        // 设置当前说话角色为激活状态（高亮）
+        const character = characters.value[position];
+        if (character) {
+          character.isActive = true;
         }
-        setCharacter(dialogue.position, dialogue.characterName, dialogue.sprite, true, silent);
+      } else {
+        console.warn(`角色 ${dialogue.characterName} 未登场，无法高亮`);
       }
 
       // 静默模式下不保存和执行动作
@@ -1271,7 +1411,7 @@ onUnmounted(() => {
   justify-content: space-around;
   pointer-events: none;
   overflow: visible;  // 允许超出边界
-  padding-top: 5%;  // 通过 padding 控制整体下移距离
+  padding-top: 8%;  // 增加顶部空间，为 jump_up 留出空间（从5%增加到8%）
 }
 
 .character-slot {
