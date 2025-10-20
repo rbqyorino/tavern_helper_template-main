@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { MessageParser } from '../parser';
 
 // 对话数据接口
 interface Dialogue {
@@ -128,6 +129,7 @@ const dialogues = computed<Dialogue[]>(() => {
     const lines = msg.message.split('\n');
     let currentBg = '';
     let currentChars: Record<string, any> = {};
+    const characterPositions = new Map<string, string>(); // 角色名 -> 位置映射
 
     lines.forEach((line: string, lineIndex: number) => {
       // 只处理已播放的行
@@ -136,55 +138,127 @@ const dialogues = computed<Dialogue[]>(() => {
       }
 
       const trimmed = line.trim();
+      if (!trimmed) return;
 
       // 记录背景
-      if (trimmed.startsWith('[bg|')) {
-        const match = trimmed.match(/\[bg\|(.+?)\]/);
-        if (match) currentBg = match[1];
+      const bg = MessageParser.parseBg(trimmed);
+      if (bg) {
+        currentBg = MessageParser.resolveAssetUrl(bg, 'image');
+        return;
       }
 
-      // 提取对话 - 旁白
-      else if (trimmed.startsWith('旁白||')) {
-        const content = trimmed.substring(4);
+      // 处理角色登场 [show|角色名|立绘|位置]
+      const showCmd = MessageParser.parseShow(trimmed);
+      if (showCmd) {
+        const url = MessageParser.resolveAssetUrl(showCmd.sprite, 'image');
+        currentChars[showCmd.position] = {
+          name: showCmd.name,
+          sprite: url,
+          isActive: false,
+        };
+        characterPositions.set(showCmd.name, showCmd.position);
+        return;
+      }
+
+      // 处理立绘变更 [alter|角色名|立绘]
+      const alterCmd = MessageParser.parseAlter(trimmed);
+      if (alterCmd) {
+        const position = characterPositions.get(alterCmd.name);
+        if (position) {
+          const url = MessageParser.resolveAssetUrl(alterCmd.sprite, 'image');
+          currentChars[position] = {
+            name: alterCmd.name,
+            sprite: url,
+            isActive: currentChars[position]?.isActive || false,
+          };
+        }
+        return;
+      }
+
+      // 处理角色离场 [leave|角色名]
+      const leaveName = MessageParser.parseLeave(trimmed);
+      if (leaveName) {
+        const position = characterPositions.get(leaveName);
+        if (position) {
+          currentChars[position] = undefined;
+          characterPositions.delete(leaveName);
+        }
+        return;
+      }
+
+      // 处理角色移动 [move|角色名|位置]
+      const moveCmd = MessageParser.parseMove(trimmed);
+      if (moveCmd) {
+        const oldPosition = characterPositions.get(moveCmd.name);
+        if (oldPosition && currentChars[oldPosition]) {
+          const char = currentChars[oldPosition];
+          currentChars[moveCmd.position] = char;
+          currentChars[oldPosition] = undefined;
+          characterPositions.set(moveCmd.name, moveCmd.position);
+        }
+        return;
+      }
+
+      // 处理 BGM [bgm|音乐名]
+      const bgm = MessageParser.parseBgm(trimmed);
+      if (bgm) {
+        return; // 跳过，不记录到 Backlog
+      }
+
+      // 处理 CG [cg|图片]
+      const cg = MessageParser.parseCg(trimmed);
+      if (cg) {
+        return; // 跳过，不记录到 Backlog
+      }
+
+      // 处理隐藏 CG [hide_cg]
+      if (MessageParser.parseHideCg(trimmed)) {
+        return; // 跳过，不记录到 Backlog
+      }
+
+      // 处理选择分支 [choice|选项1|选项2]
+      const choices = MessageParser.parseChoices(trimmed);
+      if (choices) {
+        return; // 跳过，不记录到 Backlog
+      }
+
+      // 处理单独成行的动作命令 [action|角色名|动作]
+      const standaloneAction = MessageParser.parseStandaloneAction(trimmed);
+      if (standaloneAction) {
+        return; // 跳过，不记录到 Backlog
+      }
+
+      // 解析对话 - 使用 MessageParser
+      const dialogue = MessageParser.parseDialogue(trimmed);
+      if (dialogue) {
+        // 去掉 [action|...] 命令
+        const cleanContent = dialogue.content.replace(/\[action\|[^\]]+\]/g, '').trim();
+
+        // 更新角色激活状态
+        if (dialogue.type === 'character' && dialogue.characterName) {
+          const position = characterPositions.get(dialogue.characterName);
+          if (position) {
+            // 设置所有角色为非激活
+            Object.keys(currentChars).forEach(pos => {
+              if (currentChars[pos]) {
+                currentChars[pos].isActive = false;
+              }
+            });
+            // 设置当前说话角色为激活
+            if (currentChars[position]) {
+              currentChars[position].isActive = true;
+            }
+          }
+        }
+
         result.push({
           messageId: msg.id,
           lineIndex,
-          speaker: null,
-          content,
+          speaker: dialogue.type === 'character' ? (dialogue.characterName ?? null) : null,
+          content: cleanContent,
           background: currentBg,
           characters: { ...currentChars },
         });
-      }
-
-      // 提取对话 - 角色对话
-      else if (
-        trimmed.includes('|L1|') ||
-        trimmed.includes('|L2|') ||
-        trimmed.includes('|L3|') ||
-        trimmed.includes('|L4|')
-      ) {
-        const parts = trimmed.split('|');
-        if (parts.length >= 4) {
-          const speaker = parts[0];
-          const pos = parts[1];
-          const sprite = parts[2];
-          let content = parts.slice(3).join('|');
-
-          // 去掉 [action|...] 命令
-          content = content.replace(/\[action\|[^\]]+\]/g, '').trim();
-
-          // 记录立绘
-          currentChars[pos] = { name: speaker, sprite };
-
-          result.push({
-            messageId: msg.id,
-            lineIndex,
-            speaker,
-            content,
-            background: currentBg,
-            characters: { ...currentChars },
-          });
-        }
       }
     });
   });

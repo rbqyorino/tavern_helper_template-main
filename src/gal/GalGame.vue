@@ -615,9 +615,9 @@ const performAction = (characterName: string, actionType: string) => {
       // 双方向抖动：从右到左再回来
       gsap.fromTo(
         element,
-        { x: 20 },
+        { x: 30 },
         {
-          x: -20,
+          x: -30,
           duration: 0.2,
           repeat: 4,
           yoyo: true,
@@ -975,6 +975,9 @@ const resetGameState = () => {
     L4: undefined,
     L5: undefined,
   };
+
+  // 清空角色位置映射
+  characterPositions.value.clear();
 
   // 停止并重置BGM
   if (bgmAudio) {
