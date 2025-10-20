@@ -490,8 +490,8 @@ const performAction = (characterName: string, actionType: string) => {
         { x: 20 },
         {
           x: -20,
-          duration: 0.15,
-          repeat: 5,
+          duration: 0.3,
+          repeat: 4,
           yoyo: true,
           ease: 'power1.inOut',
           onComplete: () => {
@@ -533,18 +533,18 @@ const performAction = (characterName: string, actionType: string) => {
       break;
 
     case 'near':
-      char.scale = 1.5;
+      char.scale = 1.3;
       gsap.to(element, {
-        scale: 1.5,
+        scale: 1.3,
         duration: 0.5,
         ease: 'power2.out',
       });
       break;
 
     case 'away':
-      char.scale = 0.8;
+      char.scale = 0.85;
       gsap.to(element, {
-        scale: 0.8,
+        scale: 0.85,
         duration: 0.5,
         ease: 'power2.out',
       });
@@ -1267,18 +1267,21 @@ onUnmounted(() => {
   height: 100%;
   z-index: 2;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;  // 改为顶部对齐，然后用偏移控制位置
   justify-content: space-around;
   pointer-events: none;
+  overflow: visible;  // 允许超出边界
+  padding-top: 5%;  // 通过 padding 控制整体下移距离
 }
 
 .character-slot {
   flex: 1;
   height: 96%;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-end;  // 保持立绘在 slot 内底部对齐
   justify-content: center;
-  overflow: visible; // 允许动画超出容器边界
+  overflow: visible;
+  transform: translateY(25%);  // 或者用 transform 整体下移
 }
 
 // 设置 z-index 实现显示优先级: L3 > L4=L2 > L5=L1
