@@ -336,7 +336,21 @@ const typeWriter = (text: string) => {
     clearInterval(typingInterval);
   }
 
-  // 使用配置中的文本速度
+  // 检查文本速度：如果为最大值，则直接显示全部文本（秒出效果）
+  if (textSpeed.value === 1) {
+    displayedText.value = text;
+    isTyping.value = false;
+    // 打字完成后执行待执行的动作
+    executePendingAction();
+
+    // 如果开启了自动播放，安排下一次自动点击
+    if (isAutoPlaying.value) {
+      scheduleAutoPlay();
+    }
+    return;
+  }
+
+  // 使用配置中的文本速度（非最大速度时的逐字显示）
   const speed = configStore.getTypingSpeed();
 
   typingInterval = setInterval(() => {
