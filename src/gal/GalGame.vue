@@ -1474,7 +1474,7 @@ onUnmounted(() => {
   align-items: flex-end;  // 保持立绘在 slot 内底部对齐
   justify-content: center;
   overflow: visible;
-  transform: translateY(25%);  // 或者用 transform 整体下移
+  transform: translateY(70%);  // 或者用 transform 整体下移
 }
 
 // 设置 z-index 实现显示优先级: L3 > L4=L2 > L5=L1
@@ -1493,8 +1493,8 @@ onUnmounted(() => {
 }
 
 .character-sprite {
-  max-width: 120%;
-  max-height: 120%;
+  max-width: 170%;
+  max-height: 170%;
   object-fit: contain;
   transition:
     filter 0.3s ease,
@@ -1505,7 +1505,7 @@ onUnmounted(() => {
   }
 
   &.inactive {
-    filter: brightness(0.6);
+    filter: brightness(1);
   }
 }
 
