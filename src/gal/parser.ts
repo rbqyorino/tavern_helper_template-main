@@ -224,21 +224,41 @@ export class MessageParser {
   }
 
   // 将别名转换为完整URL
-  static resolveAssetUrl(alias: string, type: 'image' | 'audio'): string {
+  static resolveAssetUrl(alias: string, type: 'sprite' | 'bg' | 'cg' | 'bgm'): string {
     // 如果已经是完整URL，直接返回
     if (alias.startsWith('http://') || alias.startsWith('https://')) {
       return alias;
     }
 
-    const baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master';
+    // 根据类型确定基础URL
+    let baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master';
+    let extension = '.png';
+
+    switch (type) {
+      case 'sprite':
+        baseUrl += '/sprite';
+        extension = '.png';
+        break;
+      case 'bg':
+        baseUrl += '/bg';
+        extension = '.png';
+        break;
+      case 'cg':
+        baseUrl += '/cg';
+        extension = '.png';
+        break;
+      case 'bgm':
+        baseUrl += '/bgm';
+        extension = '.mp3';
+        break;
+    }
 
     // 如果已经有扩展名，直接使用
     if (/\.(png|jpg|jpeg|gif|webp|mp3|ogg|wav)$/i.test(alias)) {
       return `${baseUrl}/${alias}`;
     }
 
-    // 根据类型添加默认扩展名
-    const extension = type === 'image' ? '.png' : '.mp3';
+    // 添加默认扩展名
     return `${baseUrl}/${alias}${extension}`;
   }
 }

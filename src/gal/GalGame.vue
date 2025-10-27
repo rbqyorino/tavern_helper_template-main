@@ -399,7 +399,7 @@ const updateBgmTime = () => {
 
 // 播放BGM
 const playBgm = (bgmName: string) => {
-  const url = MessageParser.resolveAssetUrl(bgmName, 'audio');
+  const url = MessageParser.resolveAssetUrl(bgmName, 'bgm');
 
   if (bgmAudio) {
     bgmAudio.pause();
@@ -433,13 +433,13 @@ const playBgm = (bgmName: string) => {
 
 // 设置背景
 const setBackground = (bg: string) => {
-  const url = MessageParser.resolveAssetUrl(bg, 'image');
+  const url = MessageParser.resolveAssetUrl(bg, 'bg');
   currentBackground.value = url;
 };
 
 // 设置CG
 const setCg = (cg: string) => {
-  const url = MessageParser.resolveAssetUrl(cg, 'image');
+  const url = MessageParser.resolveAssetUrl(cg, 'cg');
   currentCg.value = url;
   hideCg.value = false;
 };
@@ -459,7 +459,7 @@ const setCharacter = (
     return;
   }
 
-  const url = MessageParser.resolveAssetUrl(sprite, 'image');
+  const url = MessageParser.resolveAssetUrl(sprite, 'sprite');
 
   characters.value[position] = {
     name: characterName,
@@ -519,7 +519,7 @@ const handleAlter = async (name: string, sprite: string, silent = false) => {
   }
 
   // 再淡入（添加新立绘触发 fade-enter）
-  const url = MessageParser.resolveAssetUrl(sprite, 'image');
+  const url = MessageParser.resolveAssetUrl(sprite, 'sprite');
   characters.value[position] = {
     name,
     sprite: url,
@@ -1218,7 +1218,7 @@ const parseHistoryDialogues = () => {
             // 跟踪背景变化
             const bg = MessageParser.parseBg(line);
             if (bg) {
-              currentBg = MessageParser.resolveAssetUrl(bg, 'image');
+              currentBg = MessageParser.resolveAssetUrl(bg, 'bg');
               return;
             }
 
@@ -1229,7 +1229,7 @@ const parseHistoryDialogues = () => {
               if (dialogue.type === 'character' && dialogue.position && dialogue.sprite) {
                 currentChars[dialogue.position] = {
                   name: dialogue.characterName || '',
-                  sprite: MessageParser.resolveAssetUrl(dialogue.sprite, 'image'),
+                  sprite: MessageParser.resolveAssetUrl(dialogue.sprite, 'sprite'),
                   isActive: true,
                   scale: 1,
                 };
@@ -1474,7 +1474,7 @@ onUnmounted(() => {
   align-items: flex-end;  // 保持立绘在 slot 内底部对齐
   justify-content: center;
   overflow: visible;
-  transform: translateY(70%);  // 或者用 transform 整体下移
+  transform: translateY(50%);  // 或者用 transform 整体下移
 }
 
 // 设置 z-index 实现显示优先级: L3 > L4=L2 > L5=L1
@@ -1493,13 +1493,13 @@ onUnmounted(() => {
 }
 
 .character-sprite {
-  max-width: 170%;
-  max-height: 170%;
-  object-fit: contain;
+  max-width: 180%;
+  max-height: 180%;
+  aspect-ratio: 1 / 1.7;  // 固定宽高比（举例）
+  object-fit: contain;   // 保持宽高比，不变形
   transition:
     filter 0.3s ease,
     transform 0.3s ease;
-
   &.active {
     filter: brightness(1);
   }

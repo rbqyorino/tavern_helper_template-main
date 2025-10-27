@@ -1,0 +1,458 @@
+---
+
+文字字体：
+@import url("https://fontsapi.zeoseven.com/285/main/result.css");
+
+body {
+    font-family: "Noto Serif CJK";
+    font-weight: normal;
+    /* font-feature-settings: "hwid"; 启用等宽变化字形 */
+}
+---
+
+
+
+你需要修改源代码并且构建项目
+
+
+
+
+
+
+
+
+
+我发现以下现象：
+- “设置-主题”时，选择“白天”或“夜间“后，对话框没有实时变主题颜色
+- “设置-文字设置”，调整字体大小和打字速度
+- “角色呼吸效果”默认开启，但是我并没有观察到角色立绘在动
+- 对话框的打字机效果用“异世界和平.html”的效果，然后不需要
+
+
+
+
+
+优化
+- shake幅度大一点
+- 不一定点击对话框，点击其他地方也可以推进对话
+- 地图切换：假设从A背景→B背景，B背景会从左往右逐渐替换掉A背景
+- 音乐显示：界面最开始，右上角会弹窗出现此时的音乐名字，2s后弹窗消失
+- 角色立绘出现/消失：角色立绘有淡入淡出特效
+- 立绘具有轻微的呼吸
+---
+
+
+
+
+重做：
+位置，至多5个：L1 L2 L3 L4 L5
+显示优先度：
+L3＞L4=L2＞L5=L1
+
+
+
+config：
+自动播放的速度，从0s到2s
+
+
+
+
+
+
+
+
+
+
+1.音乐左上角，然后
+
+
+| bt_slider.png | 20x1172 | https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_slider.png | 右侧滚动条的背景轨道。（雪碧图） |
+
+
+| spin.png | 20x50 | https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/spin.png | 滚动条上可以拖动的滑块。 |
+
+
+
+
+颜色和其他文字的颜色一样。也有独立的设置css部分。
+
+先做界面：
+背景，右上角的图标、最后一个改成作者的话
+
+右下角一个back
+
+
+
+@src/gal/GalGame.vue 是一个视觉小说界面，现在我想为下方菜单的config制作功能。
+你需要做的，点击config图标后，进入一个新的界面，其背景为：https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/sy_bg.png
+使用 background-size: 100% 100%
+强制拉伸图片填满整个界面
+
+
+
+
+支持：点击back/鼠标右键退出此界面
+
+但是，
+
+
+图片：
+背景图去掉文字
+使用 background-size: 100% 100%
+强制拉伸图片填满整个界面
+
+
+
+
+
+字体参考“MusicSettings”的文字设置，
+
+需要的设置：
+
+
+现在为左边（不是靠最左边，而是距离左边20%的距离添加一些设置界面）
+
+左边：是否区域
+
+- 是否开启呼吸特效
+角色添加呼吸特效（首先为所有角色默认开启呼吸特效）。然后可以在这个设置里选择关闭与开启
+
+- 是否启动快捷键推进对话
+下面有个小字：快捷键包括空格/方向键“↓”/滚轮向下
+
+默认开启？还有
+
+
+中间：文字设置
+
+对话框字体的大小、文本速度（打字机的出字速度）、自动模式速度
+
+- 文本速度、自动模式速度、文本框不透明度用在log界面里出现的滚动条的背景轨道和滑块图片（但是横着放）。文本速度、自动模式速度的滚动条左右两边各是分别是两个字“慢”和“快”。文本框不透明度的滚动条左右两边各是分别是0%和100%。
+
+（出字速度和字体大小，并且初始状态有默认值，玩家可以一键恢复默认状态）
+
+现在我需要谈论几个问题：
+
+文本速度的范围是多少？
+
+---
+
+
+
+
+
+好的，现在继续装饰页面，下面是一些装饰的雪碧图素材（三等分，但是最下面的那一等分不需要）：
+它们是雪碧图且你需要用hover状态：非hover状态是雪碧图上部分，hover状态是雪碧图中间部分。每一个部分都可以点击（只是暂时没做点击后的功能）
+图片名字	尺寸	完整URL地址	用途说明（根据图片内容推断）
+bt_default.png	218x252	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_default.png	“恢复到初始设置”按钮
+bt_end.png	215x252	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_end.png	“结束游戏”按钮
+bt_off02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_off02.png	“否”状态的开关按钮
+bt_off04.png	119x184	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_off04.png	“关”状态的开关按钮
+bt_on02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_on02.png	“是”状态的开关按钮
+bt_on04.png	119x184	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_on04.png	“开”状态的开关按钮
+bt_return.png	197x252	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_return.png	“返回上个界面”按钮
+bt_tabbasic.png	181x207	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabbasic.png	“BASIC” (基础) 标签页按钮
+bt_tabdialog.png	181x207	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabdialog.png	“DIALOG” (对话) 标签页按钮
+bt_tabguide.png	181x207	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabguide.png	“GUIDE” (向导) 标签页按钮
+bt_tabsound.png	181x207	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabsound.png	“SOUND” (声音) 标签页按钮
+bt_tabvoice.png	181x207	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabvoice.png	“VOICE” (语音) 标签页按钮
+bt_title.png	231x252	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_title.png	“返回到标题界面”按钮
+
+你需要参考图片里的布局格式将这些雪碧图放在config界面内，明白吗？
+
+
+
+
+@src/gal/GalGame.vue 是个视觉小说界面， @src/gal/components/Backlog.vue 是一个进入“历史对话”的功能，点击后进入一个新的界面。
+
+现在继续装饰页面，下面是一些装饰的雪碧图素材（三等分，但是最下面的那一等分不需要）：
+它们是雪碧图且你需要用hover状态：非hover状态是雪碧图上部分，hover状态是雪碧图中间部分。每一个部分都可以点击（只是暂时没做点击后的功能）。
+需要的素材如下：
+图片名字	尺寸	完整URL地址	用途说明（根据图片内容推断）
+bt_on02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_on02.png	“是”状态的开关按钮
+
+bt_off02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_off02.png	“否”状态的开关按钮
+
+
+现在我想你在新的界面做一个“组合框”。这个组合框左边是图片“是”，右边是图片“否”。两图中间隔一段距离且图片大小为本体的0.65倍。已知这两个图片为切换状态类，所以点击是/否后，被点击的图片已知变为hover状态。因为我们要对不同功能做“是否”状态，因此现在点击后仅仅改变hover状态。
+
+你能理解我的计划吗？
+
+
+好的，现在进入界面布局。注意你只需要布局即可，暂时不需要考虑具体的功能。
+首先，去除组组件下方的“当前值：X”。
+然后你需要按照如下要求对config界面布局。
+左边（不是靠最左边，而是距离左边20%的距离添加一些设置界面）：
+1.
+- 是否开启呼吸特效
+下面是组件
+
+2.
+- 是否启动快捷键推进对话（下面有个小字：快捷键包括空格/方向键“↓”/滚轮向下，字体参考“MusicSettings”的文字设置，但是要比“是否启动快捷键推进对话”的字体大小小。）
+下面是组件
+
+中间：
+从上到下依旧是
+1.
+对话框字体的大小、文本速度、文本框不透明度
+每个部分下方不是组件，而是参考“MusicSettings”的滚动条。
+在这三个部分设置完成后还有个“展示界面”这个界面是展示当前的对话框字体的大小、文本速度、背景不透明度。背景用的是对话框的背景，文字速度和字体大小用的是对话框的字体速度和大小。展示的字是“甜蜜女友3真好玩”
+
+2.
+自动模式速度
+下方是参考“MusicSettings”的滚动条。
+
+注意：滚动条左右有字，其中文本速度、自动模式速度的滚动条左右两边各是分别是两个字“慢”和“快”。文本框不透明度的滚动条左右两边各是分别是0%和100%。
+
+---
+现在为其设置功能：
+左边：
+- 是否开启呼吸特效
+默认开启。然后可以在这个设置里选择关闭与开启
+
+- 是否启动快捷键推进对话
+下面有个小字：快捷键包括空格/方向键“↓”/滚轮向下
+
+首先你需要添加这个功能然后默认关闭。可以在这个设置里选择关闭与开启
+
+中间：
+、
+文本速度、自动模式速度的滚动条左右两边各是分别是两个字“慢”和“快”。文本框不透明度的滚动条左右两边各是分别是0%和100%。
+
+字体参考“MusicSettings”的文字设置，
+
+
+
+
+对话框字体的大小、文本速度（打字机的出字速度）、自动模式速度
+
+
+- 文本速度、自动模式速度、文本框不透明度用在log界面里出现的滚动条的背景轨道和滑块图片（但是横着放）。文本速度、自动模式速度的滚动条左右两边各是分别是两个字“慢”和“快”。文本框不透明度的滚动条左右两边各是分别是0%和100%。
+
+（出字速度和字体大小，并且初始状态有默认值，玩家可以一键恢复默认状态）
+
+现在我需要谈论几个问题：
+
+文本速度的范围是多少？
+
+---
+
+
+  max-width: 170%;
+  max-height: 170%;
+  object-fit: contain;   // 保持宽高比，不变形
+  transition:
+    filter 0.3s ease,
+    transform 0.3s ease;
+
+
+      width: auto;
+  height: 100%;
+  aspect-ratio: 1 / 1.6;  // 固定宽高比（举例）
+  object-fit: contain;   // 保持宽高比，不变形
+
+  ---
+  ---
+
+文字字体：
+@import url("https://fontsapi.zeoseven.com/285/main/result.css");
+
+body {
+    font-family: "Noto Serif CJK";
+    font-weight: normal;
+    /* font-feature-settings: "hwid"; 启用等宽变化字形 */
+}
+---
+
+
+
+
+
+
+
+4.
+注意：暂时关闭了cg
+
+
+
+5.
+世界书修改：
+绿灯提示词
+
+6.
+寻找图片立绘：
+
+角色：5人+好兄弟
+
+好兄弟：那个截图功能
+
+
+
+5人：
+表情：拉满
+衣服：2套（校服+常衣）+裸体
+
+正侧面：各一套吗
+
+每个角色两个衣服
+然后看看表情需要多少
+证明和侧面应该如何切换？
+
+
+
+界面提示词：
+<游戏化输出格式>
+# [最优先指令]
+# 你的所有回复，从头到尾，都必须严格遵循以下XML格式结构。
+# 绝对不允许输出任何在此格式之外的文本。
+
+输出格式强调:
+  description: 该系统用于控制游戏化前端界面的所有视觉和文本元素。AI必须严格遵循此格式进行输出，以确保前端能够正确解析并渲染场景。
+  rule:
+    - 你的所有回复都必须被<game_response>标签完全包裹
+    - 在填充 `立绘文件名` 时，必须且只能从 <sprite_list> 中选择一个完全匹配的文件名
+    - 在填充 `背景文件名` 时，必须且只能从 <scene_list> 中选择一个完全匹配的文件名
+    - 在填充 `cg文件名` 时，必须且只能从 <cg_list> 中选择一个完全匹配的文件名 (注意有多个<cg_list>标签)
+    - 在填充 `bgm文件名` 时，必须且只能从 <bgm_list> 中选择一个完全匹配的文件名 (若氛围无显著变化，则保持BGM不变)
+    - "{{user}}"说话时或场景、动作、心理活动描述，使用"{{user}}"或"旁白"作为角色名，立绘部分留空
+    - 仅可使用以下指令格式:
+      - 对话/旁白: 角色名|立绘文件名|文本内容
+      - 背景音乐: [bgm|音乐文件名]
+      - 背景图片: [bg|场景文件名]
+      - cg展示: [cg|cg文件名]
+      - cg隐藏: [hide_cg]
+      - 玩家选项: [choice|选项1|选项2|选项3...]
+    - 角色动作必须通过在对话或旁白文本末尾附加 [action|目标角色名|动作类型] 的格式来实现。(指令中的 `目标角色名` 必须是角色的名字 (例如 `莉莉亚`))可用动作类型及应用场景如下: (只能从以下三个预设值中选择，绝对禁止使用任何其他词语)
+      - `shake`: (角色抖动 例如：害怕、生气、强调)
+      - `jump_up`: (角色向上跳 例如：惊讶、开心、被吓到)
+      - `jump_down`: (角色向下蹲 例如：捡东西、躲藏、失落、表示肯定)
+    - 立绘文件名部分，对于没有立绘的旁白或角色，必须留空，但保留分隔符'|'。
+
+  format: |-
+    <game_response>
+    /* 初始场景设置 (可随时变更) */
+    [bgm|${符合当前场景氛围的BGM}]
+    [bg|${初始场景的背景文件名}]
+    
+    /* 对话与视觉指令的自由组合 */
+    旁白||${旁白内容}
+    [cg|${可根据剧情需要插入的cg文件名}]
+    ${角色名}|${角色的立绘文件名}|${角色的对话，可附加动作指令, [action|角色名|shake]}
+    [hide_cg] //根据剧情内容自由决定结束cg的时机
+    [bg|${可根据剧情需要插入新的场景背景文件名}]
+    ... (根据剧情需要，自由组合任意数量的对话、旁白和视觉指令) ...
+
+    /* 玩家选项，必须是最后一行 */
+    [choice|${选项一的内容}|${选项二的内容}|${选项三的内容}]
+    </game_response>
+
+---
+现在我想对支持的格式进行一些更改和替换，具体如下：
+去掉“角色名|位置|立绘名|对话内容”、“旁白||旁白内容”这样的说话内容。改为如下：
+让新角色登场的格式“[show|角色名|立绘名|位置]”
+在聊天过程中改变角色立绘的格式“[alter|角色名|立绘名]”
+将原来的说话内容改为：
+${角色名}|${角色的对话，可附加动作指令, [action|角色名|shake]}
+
+这样无论是旁白还是角色都可以用
+`名字|说话内容`表示
+请问这个方案是否可行？
+
+---
+<gal_inface>
+[bgm|bgm_1]
+[bg|road_1]
+旁白|回家的路上一切都好好的。直到三个高中生被红灯拦下，我站在数步之后——
+[show|诗梦|illu_1|L1]
+诗梦||「第一句话，执行jump」[action|诗梦|jump_up]
+[bg|road_2]
+[show|角色2|illu_2|L2]
+角色2|「执行shake」[action|角色2|shake]
+[show|角色3|illu_3|L3]
+角色3|「角色3登场」
+角色3|「欧耶」
+[show|角色4|illu_4|L4]
+角色4|「这样的话可以省下很多token了」
+角色4|「欧耶」
+[show|角色5|illu_5|L5]
+角色5|「第五角色闪亮登场」
+旁白|这是旁白
+诗梦|「往下降，并且改变表情」[action|角色1|jump_down]
+[alter|诗梦|illu_6]
+诗梦|「有没有变可爱？」
+角色2|「我溜了」
+[leave|角色2]
+角色3|「我也溜了」
+[leave|角色3]
+角色4|「那我变位置了」
+[move|角色4|L2]
+[move|角色4|L3]
+[choice|跳起来|倒立|旋转]
+</gal_inface>
+
+---
+<gal_inface>
+[bgm|bgm_1]
+[bg|road_1]
+旁白||回家的路上一切都好好的。直到三个高中生被红灯拦下，我站在数步之后——
+诗梦|L1|illu_1|「第一句话，执行jump」[action|诗梦|jump_up]
+[bg|road_2]
+诗梦|L1|illu_1|「第二句话，执行jump」[action|诗梦|jump_up]
+角色2|L2|illu_2|「第三句话，执行shake」[action|角色2|shake]
+[hide_cg]
+角色3|L3|illu_3|「第四句话，执行jump」[action|角色3|jump_up]
+角色4|L4|illu_4|「第五句话」
+角色5|L5|illu_5|「第五角色闪亮登场」
+旁白||这是旁白
+角色1|L1|illu_1|「第六句话，执行jump」[action|角色1|jump_down]
+[hide_cg]
+角色2|L2|illu_2|「第七句话，执行near」[action|角色2|near]
+角色3|L3|illu_3|「第八句话，执行away」[action|角色3|away]
+角色4|L4|illu_4|「第九句话」
+[choice|跳起来|倒立|旋转]
+</gal_inface>
+
+---
+算了，不用action的第二效果
+[action|角色名|动作]
+
+
+图片：
+背景图去掉文字
+使用 background-size: 100% 100%
+强制拉伸图片填满整个界面
+---
+角色控制指令
+[show|角色名|立绘名|位置] - 让角色首次登场
+[alter|角色名|立绘名] - 改变角色立绘（换表情）
+[leave|角色名] - 角色离场，移除立绘
+[move|角色名|位置] - 角色移动到新位置
+2. 场景控制指令（保持不变）
+[bg|图片] - 设置背景
+[cg|图片] - 显示CG
+[hide_cg] - 隐藏CG
+[bgm|音乐] - 播放BGM
+3. 互动指令（保持不变）
+[choice|选项1|选项2|...] - 显示选择分支
+4. 对话格式（全新设计）
+角色名|对话内容[action|角色名|动作类型] - 角色说话（动作可选，必须在末尾）
+旁白|旁白内容 - 旁白（不显示名字框）
+---
+
+
+@src/gal/GalGame.vue 是个视觉小说界面， @src/gal/components/Backlog.vue 是一个进入“历史对话”的功能，点击后进入一个新的界面。
+
+现在继续装饰页面，下面是一些装饰的雪碧图素材（三等分，但是最下面的那一等分不需要）：
+它们是雪碧图且你需要用hover状态：非hover状态是雪碧图上部分，hover状态是雪碧图中间部分。每一个部分都可以点击（只是暂时没做点击后的功能）。
+需要的素材如下：
+图片名字	尺寸	完整URL地址	用途说明（根据图片内容推断）
+bt_on02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_on02.png	“是”状态的开关按钮
+
+bt_off02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_off02.png	“否”状态的开关按钮
+
+
+
+
+
+
+
