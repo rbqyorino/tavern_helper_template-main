@@ -440,17 +440,6 @@ ${角色名}|${角色的对话，可附加动作指令, [action|角色名|shake]
 ---
 
 
-@src/gal/GalGame.vue 是个视觉小说界面， @src/gal/components/Backlog.vue 是一个进入“历史对话”的功能，点击后进入一个新的界面。
-
-现在继续装饰页面，下面是一些装饰的雪碧图素材（三等分，但是最下面的那一等分不需要）：
-它们是雪碧图且你需要用hover状态：非hover状态是雪碧图上部分，hover状态是雪碧图中间部分。每一个部分都可以点击（只是暂时没做点击后的功能）。
-需要的素材如下：
-图片名字	尺寸	完整URL地址	用途说明（根据图片内容推断）
-bt_on02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_on02.png	“是”状态的开关按钮
-
-bt_off02.png	204x224	https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_off02.png	“否”状态的开关按钮
-
-
 
 
 
