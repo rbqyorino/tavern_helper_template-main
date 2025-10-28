@@ -1655,12 +1655,12 @@ onUnmounted(() => {
 
 .character-slot {
   flex: 1;
-  height: 96%;
+  height: 100%;
   display: flex;
   align-items: flex-end;  // 保持立绘在 slot 内底部对齐
   justify-content: center;
   overflow: visible;
-  transform: translateY(50%);  // 或者用 transform 整体下移
+  transform: translateY(40%);  // 或者用 transform 整体下移
 }
 
 // 设置 z-index 实现显示优先级: L3 > L4=L2 > L5=L1
@@ -1679,9 +1679,8 @@ onUnmounted(() => {
 }
 
 .character-sprite {
-  max-width: 180%;
-  max-height: 180%;
-  aspect-ratio: 1 / 1.7;  // 固定宽高比（举例）
+  max-width: 180%;      // 保留原来的上限
+  aspect-ratio: 1 /1.65;  // 固定宽高比（举例）
   object-fit: contain;   // 保持宽高比，不变形
   transition:
     filter 0.3s ease,
