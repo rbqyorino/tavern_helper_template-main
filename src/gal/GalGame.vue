@@ -192,6 +192,30 @@ let typingInterval: ReturnType<typeof setInterval> | null = null;
 // 呼吸特效动画实例
 const breathingAnimations = new Map<string, gsap.core.Tween>(); // 存储每个角色的呼吸动画
 
+// 全局 BGM 管理 - 确保只有最新的实例播放音乐
+const GLOBAL_BGM_EVENT = 'gal-game-bgm-play';
+const GLOBAL_BGM_STATE_KEY = 'gal_global_bgm_state'; // 全局变量的 key
+const instanceId = ref<string>(''); // 当前实例的唯一标识
+
+// 全局 BGM 状态数据结构
+interface GlobalBgmState {
+  playingInstanceId: string; // 当前正在播放的实例 ID
+  messageId: number; // 该实例所属的消息楼层 ID
+  bgmName: string; // 当前播放的 BGM 名称
+  timestamp: number; // 最后更新时间戳
+}
+
+// 获取父窗口（用于跨 iframe 通信）
+const getParentWindow = (): Window => {
+  try {
+    // 尝试访问 parent.window，如果失败则使用当前 window
+    return parent !== window ? parent : window;
+  } catch (e) {
+    console.warn('无法访问父窗口，使用当前 window', e);
+    return window;
+  }
+};
+
 // Backlog 状态
 const showBacklog = ref(false);
 
@@ -397,16 +421,79 @@ const updateBgmTime = () => {
   }
 };
 
-// 播放BGM
-const playBgm = (bgmName: string) => {
-  const url = MessageParser.resolveAssetUrl(bgmName, 'bgm');
+// 读取全局 BGM 状态
+const getGlobalBgmState = (): GlobalBgmState | null => {
+  try {
+    const allGlobalVars = getVariables({ type: 'global' });
+    const state = _.get(allGlobalVars, GLOBAL_BGM_STATE_KEY, null);
+    return state as GlobalBgmState | null;
+  } catch (e) {
+    console.warn('读取全局 BGM 状态失败:', e);
+    return null;
+  }
+};
 
+// 更新全局 BGM 状态
+const updateGlobalBgmState = async (state: GlobalBgmState) => {
+  try {
+    await insertOrAssignVariables({ [GLOBAL_BGM_STATE_KEY]: state }, { type: 'global' });
+    console.log('全局 BGM 状态已更新:', state);
+  } catch (e) {
+    console.error('更新全局 BGM 状态失败:', e);
+  }
+};
+
+// 停止当前实例的 BGM
+const stopBgm = () => {
   if (bgmAudio) {
     bgmAudio.pause();
     bgmAudio.removeEventListener('loadedmetadata', updateBgmDuration);
     bgmAudio.removeEventListener('timeupdate', updateBgmTime);
     bgmAudio = null;
   }
+  bgmIsPlaying.value = false;
+};
+
+// 监听其他实例的 BGM 播放事件（通过父窗口传递）
+const handleGlobalBgmPlay = (event: CustomEvent<GlobalBgmState>) => {
+  const state = event.detail;
+  // 如果不是当前实例播放的音乐，则停止当前实例的音乐
+  if (state.playingInstanceId !== instanceId.value) {
+    console.log(`其他实例 (${state.playingInstanceId}) 开始播放 BGM，停止当前实例的播放`);
+    stopBgm();
+  }
+};
+
+// 播放BGM
+const playBgm = (bgmName: string) => {
+  // 检查是否应该播放 BGM（基于消息 ID 和时间戳判断）
+  if (!checkShouldPlayBgm()) {
+    console.log('当前实例不应播放 BGM，跳过播放');
+    return;
+  }
+
+  const url = MessageParser.resolveAssetUrl(bgmName, 'bgm');
+
+  // 停止当前实例的旧音乐
+  stopBgm();
+
+  // 创建新的全局状态
+  const newState: GlobalBgmState = {
+    playingInstanceId: instanceId.value,
+    messageId: currentMessageId.value,
+    bgmName: bgmName,
+    timestamp: Date.now(),
+  };
+
+  // 方案 B: 更新全局变量（持久化存储）
+  updateGlobalBgmState(newState);
+
+  // 方案 A: 通过父窗口发送事件通知其他实例（实时同步）
+  const parentWin = getParentWindow();
+  const event = new CustomEvent(GLOBAL_BGM_EVENT, { detail: newState });
+  parentWin.dispatchEvent(event);
+
+  console.log('当前实例开始播放 BGM:', bgmName, '实例ID:', instanceId.value);
 
   bgmAudio = new Audio(url);
   bgmAudio.loop = true;
@@ -994,10 +1081,7 @@ const resetGameState = () => {
   characterPositions.value.clear();
 
   // 停止并重置BGM
-  if (bgmAudio) {
-    bgmAudio.pause();
-    bgmAudio.currentTime = 0;
-  }
+  stopBgm();
   currentBgmName.value = '';
   showBgmNotification.value = false;
 
@@ -1289,9 +1373,53 @@ const handleMessage = async (message: string) => {
   }
 };
 
+// 检查是否应该播放当前实例的 BGM
+const checkShouldPlayBgm = (): boolean => {
+  try {
+    const globalState = getGlobalBgmState();
+
+    // 如果没有全局状态，说明是第一次播放，允许播放
+    if (!globalState) {
+      console.log('没有全局 BGM 状态，允许播放');
+      return true;
+    }
+
+    // 如果当前实例的消息 ID 更大（更新），允许播放
+    if (currentMessageId.value > globalState.messageId) {
+      console.log(`当前消息 ID (${currentMessageId.value}) > 全局状态消息 ID (${globalState.messageId})，允许播放`);
+      return true;
+    }
+
+    // 如果消息 ID 相同，检查时间戳
+    if (currentMessageId.value === globalState.messageId) {
+      // 允许稍微晚一点加载的实例覆盖（比如页面刷新后的情况）
+      const timeDiff = Date.now() - globalState.timestamp;
+      if (timeDiff > 1000) { // 超过 1 秒，认为是新加载的
+        console.log('消息 ID 相同但时间差超过 1 秒，允许播放');
+        return true;
+      }
+    }
+
+    console.log(`当前消息 ID (${currentMessageId.value}) <= 全局状态消息 ID (${globalState.messageId})，不播放`);
+    return false;
+  } catch (e) {
+    console.error('检查是否应该播放 BGM 失败:', e);
+    return true; // 出错时默认允许播放
+  }
+};
+
 // 监听酒馆消息
 onMounted(() => {
   console.log('GAL游戏界面已加载');
+
+  // 生成唯一实例 ID
+  instanceId.value = `gal-instance-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  console.log('实例ID:', instanceId.value);
+
+  // 注册全局 BGM 事件监听器 - 在父窗口上监听
+  const parentWin = getParentWindow();
+  parentWin.addEventListener(GLOBAL_BGM_EVENT, handleGlobalBgmPlay as EventListener);
+  console.log('已在父窗口注册 BGM 事件监听器');
 
   // 加载配置
   configStore.loadConfig();
@@ -1328,6 +1456,11 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  // 移除全局 BGM 事件监听器 - 从父窗口移除
+  const parentWin = getParentWindow();
+  parentWin.removeEventListener(GLOBAL_BGM_EVENT, handleGlobalBgmPlay as EventListener);
+  console.log('已从父窗口移除 BGM 事件监听器');
+
   // 移除滚轮监听器
   window.removeEventListener('wheel', handleWheel);
 
@@ -1339,10 +1472,8 @@ onUnmounted(() => {
     stopBreathing(pos);
   });
 
-  if (bgmAudio) {
-    bgmAudio.pause();
-    bgmAudio = null;
-  }
+  // 停止 BGM
+  stopBgm();
 
   if (typingInterval) {
     clearInterval(typingInterval);
