@@ -195,6 +195,7 @@ const breathingAnimations = new Map<string, gsap.core.Tween>(); // 存储每个�
 // 全局 BGM 管理 - 确保只有最新的实例播放音乐
 const GLOBAL_BGM_EVENT = 'gal-game-bgm-play';
 const GLOBAL_BGM_STATE_KEY = 'gal_global_bgm_state'; // 全局变量的 key
+const GLOBAL_BGM_VOLUME_KEY = 'gal_global_bgm_volume'; // 全局音量设置的 key
 const instanceId = ref<string>(''); // 当前实例的唯一标识
 
 // 全局 BGM 状态数据结构
@@ -440,6 +441,29 @@ const updateGlobalBgmState = async (state: GlobalBgmState) => {
     console.log('全局 BGM 状态已更新:', state);
   } catch (e) {
     console.error('更新全局 BGM 状态失败:', e);
+  }
+};
+
+// 读取全局音量设置
+const getGlobalBgmVolume = (): number => {
+  try {
+    const allGlobalVars = getVariables({ type: 'global' });
+    const volume = _.get(allGlobalVars, GLOBAL_BGM_VOLUME_KEY, 0.5); // 默认音量 0.5
+    console.log('读取全局音量:', volume);
+    return volume as number;
+  } catch (e) {
+    console.warn('读取全局音量失败:', e);
+    return 0.5; // 默认音量
+  }
+};
+
+// 保存全局音量设置
+const saveGlobalBgmVolume = async (volume: number) => {
+  try {
+    await insertOrAssignVariables({ [GLOBAL_BGM_VOLUME_KEY]: volume }, { type: 'global' });
+    console.log('全局音量已保存:', volume);
+  } catch (e) {
+    console.error('保存全局音量失败:', e);
   }
 };
 
@@ -1178,6 +1202,9 @@ const handleVolumeChange = (volume: number) => {
   if (bgmAudio) {
     bgmAudio.volume = volume;
   }
+
+  // 保存音量到全局变量，以便后续实例使用
+  saveGlobalBgmVolume(volume);
 };
 
 // 处理进度跳转
@@ -1423,6 +1450,11 @@ onMounted(() => {
 
   // 加载配置
   configStore.loadConfig();
+
+  // 读取并应用全局音量设置
+  const savedVolume = getGlobalBgmVolume();
+  bgmVolume.value = savedVolume;
+  console.log('已应用全局音量设置:', savedVolume);
 
   // 初始化当前消息ID用于Backlog
   initCurrentMessageId();
