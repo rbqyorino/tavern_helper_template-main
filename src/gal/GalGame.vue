@@ -422,25 +422,25 @@ const updateBgmTime = () => {
   }
 };
 
-// 读取全局 BGM 状态
+// 读取当前对话的 BGM 状态
 const getGlobalBgmState = (): GlobalBgmState | null => {
   try {
-    const allGlobalVars = getVariables({ type: 'global' });
-    const state = _.get(allGlobalVars, GLOBAL_BGM_STATE_KEY, null);
+    const allChatVars = getVariables({ type: 'chat' });
+    const state = _.get(allChatVars, GLOBAL_BGM_STATE_KEY, null);
     return state as GlobalBgmState | null;
   } catch (e) {
-    console.warn('读取全局 BGM 状态失败:', e);
+    console.warn('读取 BGM 状态失败:', e);
     return null;
   }
 };
 
-// 更新全局 BGM 状态
+// 更新当前对话的 BGM 状态
 const updateGlobalBgmState = async (state: GlobalBgmState) => {
   try {
-    await insertOrAssignVariables({ [GLOBAL_BGM_STATE_KEY]: state }, { type: 'global' });
-    console.log('全局 BGM 状态已更新:', state);
+    await insertOrAssignVariables({ [GLOBAL_BGM_STATE_KEY]: state }, { type: 'chat' });
+    console.log('BGM 状态已更新:', state);
   } catch (e) {
-    console.error('更新全局 BGM 状态失败:', e);
+    console.error('更新 BGM 状态失败:', e);
   }
 };
 
@@ -854,8 +854,8 @@ const processLine = async (line: string, silent = false) => {
   const showCmd = MessageParser.parseShow(line);
   if (showCmd) {
     handleShow(showCmd.name, showCmd.sprite, showCmd.position, silent);
-    // 静默模式继续，正常模式暂停
-    return silent ? true : false;
+    // 自动执行，立刻继续处理下一行
+    return true;
   }
 
   // 处理立绘变更 [alter|角色名|立绘]
@@ -1403,17 +1403,37 @@ const handleMessage = async (message: string) => {
 // 检查是否应该播放当前实例的 BGM
 const checkShouldPlayBgm = (): boolean => {
   try {
+    // 获取实时的最新楼层 ID
+    const latestMessageId = getLastMessageId();
+    console.log(
+      `[BGM 播放检查] 当前实例消息 ID: ${currentMessageId.value}, 最新楼层 ID: ${latestMessageId}`
+    );
+
+    // 只允许最新楼层播放音乐
+    if (currentMessageId.value !== latestMessageId) {
+      console.log(
+        `[BGM 播放检查] 当前实例 (${currentMessageId.value}) 不是最新楼层 (${latestMessageId})，不播放`
+      );
+      return false;
+    }
+
     const globalState = getGlobalBgmState();
 
     // 如果没有全局状态，说明是第一次播放，允许播放
     if (!globalState) {
-      console.log('没有全局 BGM 状态，允许播放');
+      console.log('[BGM 播放检查] 没有全局 BGM 状态，允许播放');
       return true;
     }
 
+    console.log(
+      `[BGM 播放检查] 全局状态消息 ID: ${globalState.messageId}, 时间戳: ${globalState.timestamp}`
+    );
+
     // 如果当前实例的消息 ID 更大（更新），允许播放
     if (currentMessageId.value > globalState.messageId) {
-      console.log(`当前消息 ID (${currentMessageId.value}) > 全局状态消息 ID (${globalState.messageId})，允许播放`);
+      console.log(
+        `[BGM 播放检查] 当前消息 ID (${currentMessageId.value}) > 全局状态消息 ID (${globalState.messageId})，允许播放`
+      );
       return true;
     }
 
@@ -1421,16 +1441,19 @@ const checkShouldPlayBgm = (): boolean => {
     if (currentMessageId.value === globalState.messageId) {
       // 允许稍微晚一点加载的实例覆盖（比如页面刷新后的情况）
       const timeDiff = Date.now() - globalState.timestamp;
-      if (timeDiff > 1000) { // 超过 1 秒，认为是新加载的
-        console.log('消息 ID 相同但时间差超过 1 秒，允许播放');
+      if (timeDiff > 1000) {
+        // 超过 1 秒，认为是新加载的
+        console.log('[BGM 播放检查] 消息 ID 相同但时间差超过 1 秒，允许播放');
         return true;
       }
     }
 
-    console.log(`当前消息 ID (${currentMessageId.value}) <= 全局状态消息 ID (${globalState.messageId})，不播放`);
+    console.log(
+      `[BGM 播放检查] 当前消息 ID (${currentMessageId.value}) <= 全局状态消息 ID (${globalState.messageId})，不播放`
+    );
     return false;
   } catch (e) {
-    console.error('检查是否应该播放 BGM 失败:', e);
+    console.error('[BGM 播放检查] 检查失败:', e);
     return true; // 出错时默认允许播放
   }
 };
@@ -1711,7 +1734,7 @@ onUnmounted(() => {
   position: absolute;
   left: 13%;
   top: 0;
-  transform: translateY(70%);
+  transform: translateY(50%);
   width: 16.3%;
   max-width: 300px; /* 限制最大宽度，防止宽屏时过大 */
   max-height: 47px; /* 限制最大高度 */
