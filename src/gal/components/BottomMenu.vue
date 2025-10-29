@@ -265,4 +265,16 @@ watch(() => props.isAutoPlaying, (isAuto) => {
     filter: brightness(1.2);
   }
 }
+
+// 小屏幕响应式：隐藏不常用按钮（< 1000px）
+@media (max-width: 999px) {
+  .icon-skip,
+  .icon-prev,
+  .icon-next,
+  .icon-fav,
+  .icon-graph,
+  .icon-lock {
+    display: none;
+  }
+}
 </style>
