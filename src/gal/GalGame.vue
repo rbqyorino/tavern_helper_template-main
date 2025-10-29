@@ -1458,7 +1458,7 @@ const checkShouldPlayBgm = (): boolean => {
   }
 };
 
-// 响应式计算立绘参数
+// 响应式计算立绘参数和容器高度
 const calculateCharacterStyles = () => {
   const width = window.innerWidth;
   const MIN_WIDTH = 750;
@@ -1485,6 +1485,7 @@ const calculateCharacterStyles = () => {
   document.documentElement.style.setProperty('--character-translateY', `${translateY}%`);
   document.documentElement.style.setProperty('--character-maxWidth', `${maxWidth}%`);
 };
+
 
 // 监听酒馆消息
 onMounted(() => {
@@ -1618,7 +1619,7 @@ onUnmounted(() => {
 .background-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: fill;
 }
 
 // 背景切换动画 - 从左往右擦除效果
