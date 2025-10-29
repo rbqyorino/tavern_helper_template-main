@@ -1458,6 +1458,34 @@ const checkShouldPlayBgm = (): boolean => {
   }
 };
 
+// 响应式计算立绘参数
+const calculateCharacterStyles = () => {
+  const width = window.innerWidth;
+  const MIN_WIDTH = 750;
+  const MAX_WIDTH = 1100;
+
+  let translateY, maxWidth;
+
+  if (width <= MIN_WIDTH) {
+    // 手机端
+    translateY = 20;
+    maxWidth = 250;
+  } else if (width >= MAX_WIDTH) {
+    // 电脑端
+    translateY = -5;
+    maxWidth = 200;
+  } else {
+    // 中间段：线性插值
+    const ratio = (width - MIN_WIDTH) / (MAX_WIDTH - MIN_WIDTH);
+    translateY = 20 - 25 * ratio;        // 20 到 -5 之间
+    maxWidth = 250 - 50 * ratio;          // 250 到 200 之间
+  }
+
+  console.log(`更新立绘参数: 宽度=${width}px, translateY=${translateY}%, maxWidth=${maxWidth}%`);
+  document.documentElement.style.setProperty('--character-translateY', `${translateY}%`);
+  document.documentElement.style.setProperty('--character-maxWidth', `${maxWidth}%`);
+};
+
 // 监听酒馆消息
 onMounted(() => {
   console.log('GAL游戏界面已加载');
@@ -1481,6 +1509,12 @@ onMounted(() => {
 
   // 初始化当前消息ID用于Backlog
   initCurrentMessageId();
+
+  // 初始化立绘响应式参数
+  calculateCharacterStyles();
+
+  // 注册窗口 resize 监听器
+  window.addEventListener('resize', calculateCharacterStyles);
 
   // 注册滚轮监听器
   window.addEventListener('wheel', handleWheel, { passive: false });
@@ -1515,6 +1549,9 @@ onUnmounted(() => {
   const parentWin = getParentWindow();
   parentWin.removeEventListener(GLOBAL_BGM_EVENT, handleGlobalBgmPlay as EventListener);
   console.log('已从父窗口移除 BGM 事件监听器');
+
+  // 移除 resize 监听器
+  window.removeEventListener('resize', calculateCharacterStyles);
 
   // 移除滚轮监听器
   window.removeEventListener('wheel', handleWheel);
@@ -1659,7 +1696,7 @@ onUnmounted(() => {
   align-items: flex-end;  // 保持立绘在 slot 内底部对齐
   justify-content: center;
   overflow: visible;
-  transform: translateY(-5%);  // 或者用 transform 整体下移
+  transform: translateY(var(--character-translateY, -5%));  // 使用 CSS 变量，默认值 -5%
 }
 
 // 设置 z-index 实现显示优先级: L3 > L4=L2 > L5=L1
@@ -1678,7 +1715,7 @@ onUnmounted(() => {
 }
 
 .character-sprite {
-  max-width: 200%;      // 保留原来的上限
+  max-width: var(--character-maxWidth, 200%);  // 使用 CSS 变量，默认值 200%
   aspect-ratio: 1 /1.65;  // 固定宽高比（举例）
   object-fit: contain;   // 保持宽高比，不变形
   transition:
