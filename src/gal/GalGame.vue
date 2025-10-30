@@ -136,7 +136,7 @@ import { storeToRefs } from 'pinia';
 
 // 使用配置 store
 const configStore = useConfigStore();
-const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity } = storeToRefs(configStore);
+const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, fullscreenDblClick } = storeToRefs(configStore);
 
 // 状态定义
 interface Character {
@@ -1406,6 +1406,11 @@ const toggleFullscreen = async () => {
 
 // 处理双击事件
 const handleDoubleClick = (event: MouseEvent) => {
+  // 检查是否开启了双击全屏功能
+  if (!fullscreenDblClick.value) {
+    return;
+  }
+
   // 检查点击目标是否在对话框内
   const dialogueLayer = (event.target as HTMLElement).closest('.dialogue-layer');
   if (dialogueLayer) {

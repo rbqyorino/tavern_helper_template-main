@@ -7,6 +7,7 @@ import _ from 'lodash';
 const ConfigSchema = z.object({
   breathingEffect: z.boolean().default(true), // 是否开启呼吸特效
   keyboardShortcut: z.boolean().default(true), // 是否启用快捷键推进对话
+  fullscreenDblClick: z.boolean().default(true), // 是否开启双击全屏功能
   autoSpeed: z.number().min(0).max(1).default(0.5), // 自动模式速度 0-1 (0慢, 1快)
   fontSize: z.number().min(16).max(32).default(24), // 对话框字体大小 16-32px
   textSpeed: z.number().min(0).max(1).default(0.5), // 文本速度 0-1 (0慢, 1快)
@@ -19,6 +20,7 @@ export const useConfigStore = defineStore('galConfig', () => {
   // 配置数据
   const breathingEffect = ref(true);
   const keyboardShortcut = ref(true);
+  const fullscreenDblClick = ref(true);
   const autoSpeed = ref(0.5);
   const fontSize = ref(24);
   const textSpeed = ref(0.5);
@@ -39,6 +41,7 @@ export const useConfigStore = defineStore('galConfig', () => {
         const parsed = ConfigSchema.parse(savedConfig);
         breathingEffect.value = parsed.breathingEffect;
         keyboardShortcut.value = parsed.keyboardShortcut;
+        fullscreenDblClick.value = parsed.fullscreenDblClick;
         autoSpeed.value = parsed.autoSpeed;
         fontSize.value = parsed.fontSize;
         textSpeed.value = parsed.textSpeed;
@@ -64,6 +67,7 @@ export const useConfigStore = defineStore('galConfig', () => {
       const config: Config = {
         breathingEffect: breathingEffect.value,
         keyboardShortcut: keyboardShortcut.value,
+        fullscreenDblClick: fullscreenDblClick.value,
         autoSpeed: autoSpeed.value,
         fontSize: fontSize.value,
         textSpeed: textSpeed.value,
@@ -84,6 +88,7 @@ export const useConfigStore = defineStore('galConfig', () => {
     const defaultConfig = ConfigSchema.parse({});
     breathingEffect.value = defaultConfig.breathingEffect;
     keyboardShortcut.value = defaultConfig.keyboardShortcut;
+    fullscreenDblClick.value = defaultConfig.fullscreenDblClick;
     autoSpeed.value = defaultConfig.autoSpeed;
     fontSize.value = defaultConfig.fontSize;
     textSpeed.value = defaultConfig.textSpeed;
@@ -109,6 +114,7 @@ export const useConfigStore = defineStore('galConfig', () => {
     // 配置项
     breathingEffect,
     keyboardShortcut,
+    fullscreenDblClick,
     autoSpeed,
     fontSize,
     textSpeed,

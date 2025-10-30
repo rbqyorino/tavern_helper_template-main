@@ -29,6 +29,12 @@
           <ToggleSwitch v-model="keyboardShortcut" />
         </div>
 
+        <!-- 双击全屏设置 -->
+        <div class="setting-item">
+          <div class="fullscreen-title">是否开启双击全屏功能</div>
+          <ToggleSwitch v-model="fullscreenDblClick" />
+        </div>
+
         <!-- 自动模式速度 -->
         <div class="setting-item">
           <div class="autospeed-title">自动模式速度</div>
@@ -135,10 +141,10 @@ const emit = defineEmits<{
 
 // 使用 config store
 const configStore = useConfigStore();
-const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, autoSpeed } = storeToRefs(configStore);
+const { breathingEffect, keyboardShortcut, fullscreenDblClick, fontSize, textSpeed, opacity, autoSpeed } = storeToRefs(configStore);
 
 // 监听配置变化并自动保存
-watch([breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, autoSpeed], () => {
+watch([breathingEffect, keyboardShortcut, fullscreenDblClick, fontSize, textSpeed, opacity, autoSpeed], () => {
   configStore.saveConfig();
 }, { deep: true });
 
@@ -526,6 +532,12 @@ onUnmounted(() => {
   font-weight: 800;
   color: #453118;
   margin-top: -10px;
+}
+
+.fullscreen-title {
+  font-size: clamp(1rem, 2vw, 2rem);
+  font-weight: 800;
+  color: #453118;
 }
 
 .autospeed-title {
