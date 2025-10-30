@@ -494,14 +494,18 @@ onUnmounted(() => {
   top: 15%;
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: clamp(20px, 4vw, 40px);
   width: 30%;
+  max-height: 75%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px; // 为滚动条留空间
 }
 
 .setting-item {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: clamp(8px, 1.5vw, 15px);
 }
 
 // 左侧独立标题样式
@@ -539,14 +543,18 @@ onUnmounted(() => {
   width: 35%;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: clamp(8px, 1.5vw, 15px);
+  max-height: 80%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px; // 为滚动条留空间
 }
 
 .control-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: clamp(5px, 1vw, 10px);
 }
 
 // 右侧独立标题样式
@@ -575,7 +583,7 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: clamp(8px, 1.5vw, 15px);
   justify-content: center;
 }
 
@@ -633,8 +641,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: clamp(5px, 1vw, 10px);
+  margin-top: clamp(5px, 1vw, 10px);
 }
 
 .preview-title {

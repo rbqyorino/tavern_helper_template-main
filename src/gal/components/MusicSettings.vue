@@ -281,18 +281,21 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   width: 80%;
-  height: 80%;
+  max-height: 80%;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
   z-index: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px; // 为滚动条留空间
 }
 
 // BGM 名称区域
 .bgm-name-section {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: clamp(30px, 5vw, 60px);
 }
 
 .bgm-name-text {
@@ -307,8 +310,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 40px;
+  gap: clamp(10px, 2vw, 20px);
+  margin-bottom: clamp(20px, 3vw, 40px);
 }
 
 // 音量部分样式
@@ -405,7 +408,7 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: clamp(10px, 2vw, 20px);
   justify-content: center;
 }
 
