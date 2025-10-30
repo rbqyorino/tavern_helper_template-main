@@ -1425,6 +1425,9 @@ const handleFullscreenChange = () => {
     (document as any).msFullscreenElement
   );
   console.log('全屏状态变化:', isFullscreen.value);
+
+  // 全屏状态变化时，重新计算立绘参数
+  calculateCharacterStyles();
 };
 
 // 处理消息 - 初始化消息并开始处理
@@ -1478,7 +1481,12 @@ const calculateCharacterStyles = () => {
 
   let translateY, maxWidth;
 
-  if (width <= MIN_WIDTH) {
+  // 如果处于全屏模式，采用电脑端（屏幕宽度较大）的设置
+  if (isFullscreen.value) {
+    translateY = -5;
+    maxWidth = 200;
+    console.log(`全屏模式: 采用电脑端设置, translateY=${translateY}%, maxWidth=${maxWidth}%`);
+  } else if (width <= MIN_WIDTH) {
     // 手机端
     translateY = 20;
     maxWidth = 250;
@@ -1493,7 +1501,7 @@ const calculateCharacterStyles = () => {
     maxWidth = 250 - 50 * ratio; // 250 到 200 之间
   }
 
-  console.log(`更新立绘参数: 宽度=${width}px, translateY=${translateY}%, maxWidth=${maxWidth}%`);
+  console.log(`更新立绘参数: 宽度=${width}px, 全屏=${isFullscreen.value}, translateY=${translateY}%, maxWidth=${maxWidth}%`);
   document.documentElement.style.setProperty('--character-translateY', `${translateY}%`);
   document.documentElement.style.setProperty('--character-maxWidth', `${maxWidth}%`);
 };
