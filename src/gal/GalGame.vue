@@ -422,18 +422,6 @@ const updateBgmTime = () => {
   }
 };
 
-// 读取当前对话的 BGM 状态
-const getGlobalBgmState = (): GlobalBgmState | null => {
-  try {
-    const allChatVars = getVariables({ type: 'chat' });
-    const state = _.get(allChatVars, GLOBAL_BGM_STATE_KEY, null);
-    return state as GlobalBgmState | null;
-  } catch (e) {
-    console.warn('读取 BGM 状态失败:', e);
-    return null;
-  }
-};
-
 // 更新当前对话的 BGM 状态
 const updateGlobalBgmState = async (state: GlobalBgmState) => {
   try {
@@ -755,7 +743,6 @@ const performAction = (characterName: string, actionType: string) => {
       break;
 
     case 'jump_up':
-    
       gsap.to(element, {
         y: -90,
         duration: 0.4,
@@ -772,7 +759,7 @@ const performAction = (characterName: string, actionType: string) => {
 
     case 'jump_down':
       gsap.to(element, {
-        y: 80, 
+        y: 80,
         duration: 0.4,
         ease: 'power2.out',
         onComplete: () => {
@@ -786,9 +773,9 @@ const performAction = (characterName: string, actionType: string) => {
       break;
 
     case 'near':
-      char.scale = 1.3;
+      char.scale = 1.2;
       gsap.to(element, {
-        scale: 1.3,
+        scale: 1.2,
         duration: 0.5,
         ease: 'power2.out',
       });
@@ -1405,53 +1392,18 @@ const checkShouldPlayBgm = (): boolean => {
   try {
     // 获取实时的最新楼层 ID
     const latestMessageId = getLastMessageId();
-    console.log(
-      `[BGM 播放检查] 当前实例消息 ID: ${currentMessageId.value}, 最新楼层 ID: ${latestMessageId}`
-    );
+    console.log(`[BGM 播放检查] 当前实例消息 ID: ${currentMessageId.value}, 最新楼层 ID: ${latestMessageId}`);
 
-    // 只允许最新楼层播放音乐
-    if (currentMessageId.value !== latestMessageId) {
-      console.log(
-        `[BGM 播放检查] 当前实例 (${currentMessageId.value}) 不是最新楼层 (${latestMessageId})，不播放`
-      );
+    // 检查当前实例与最新楼层的距离
+    // 只有当距离超过1层时才停止播放
+    // 允许范围: currentMessageId >= latestMessageId - 1
+    if (currentMessageId.value < latestMessageId - 1) {
+      console.log(`[BGM 播放检查] 当前实例 (${currentMessageId.value}) 距离最新楼层 (${latestMessageId}) 超过1层，不播放`);
       return false;
     }
 
-    const globalState = getGlobalBgmState();
-
-    // 如果没有全局状态，说明是第一次播放，允许播放
-    if (!globalState) {
-      console.log('[BGM 播放检查] 没有全局 BGM 状态，允许播放');
-      return true;
-    }
-
-    console.log(
-      `[BGM 播放检查] 全局状态消息 ID: ${globalState.messageId}, 时间戳: ${globalState.timestamp}`
-    );
-
-    // 如果当前实例的消息 ID 更大（更新），允许播放
-    if (currentMessageId.value > globalState.messageId) {
-      console.log(
-        `[BGM 播放检查] 当前消息 ID (${currentMessageId.value}) > 全局状态消息 ID (${globalState.messageId})，允许播放`
-      );
-      return true;
-    }
-
-    // 如果消息 ID 相同，检查时间戳
-    if (currentMessageId.value === globalState.messageId) {
-      // 允许稍微晚一点加载的实例覆盖（比如页面刷新后的情况）
-      const timeDiff = Date.now() - globalState.timestamp;
-      if (timeDiff > 1000) {
-        // 超过 1 秒，认为是新加载的
-        console.log('[BGM 播放检查] 消息 ID 相同但时间差超过 1 秒，允许播放');
-        return true;
-      }
-    }
-
-    console.log(
-      `[BGM 播放检查] 当前消息 ID (${currentMessageId.value}) <= 全局状态消息 ID (${globalState.messageId})，不播放`
-    );
-    return false;
+    console.log(`[BGM 播放检查] 当前实例 (${currentMessageId.value}) 在允许范围内，允许播放`);
+    return true;
   } catch (e) {
     console.error('[BGM 播放检查] 检查失败:', e);
     return true; // 出错时默认允许播放
@@ -1477,15 +1429,14 @@ const calculateCharacterStyles = () => {
   } else {
     // 中间段：线性插值
     const ratio = (width - MIN_WIDTH) / (MAX_WIDTH - MIN_WIDTH);
-    translateY = 20 - 25 * ratio;        // 20 到 -5 之间
-    maxWidth = 250 - 50 * ratio;          // 250 到 200 之间
+    translateY = 20 - 25 * ratio; // 20 到 -5 之间
+    maxWidth = 250 - 50 * ratio; // 250 到 200 之间
   }
 
   console.log(`更新立绘参数: 宽度=${width}px, translateY=${translateY}%, maxWidth=${maxWidth}%`);
   document.documentElement.style.setProperty('--character-translateY', `${translateY}%`);
   document.documentElement.style.setProperty('--character-maxWidth', `${maxWidth}%`);
 };
-
 
 // 监听酒馆消息
 onMounted(() => {
@@ -1684,20 +1635,20 @@ onUnmounted(() => {
   height: 100%;
   z-index: 2;
   display: flex;
-  align-items: flex-start;  // 改为顶部对齐，然后用偏移控制位置
+  align-items: flex-start; // 改为顶部对齐，然后用偏移控制位置
   justify-content: space-around;
   pointer-events: none;
-  overflow: visible;  // 允许超出边界
-  padding-top: 8%;  // 增加顶部空间，为 jump_up 留出空间（从5%增加到8%）
+  overflow: visible; // 允许超出边界
+  padding-top: 8%; // 增加顶部空间，为 jump_up 留出空间（从5%增加到8%）
 }
 
 .character-slot {
   flex: 1;
   display: flex;
-  align-items: flex-end;  // 保持立绘在 slot 内底部对齐
+  align-items: flex-end; // 保持立绘在 slot 内底部对齐
   justify-content: center;
   overflow: visible;
-  transform: translateY(var(--character-translateY, -5%));  // 使用 CSS 变量，默认值 -5%
+  transform: translateY(var(--character-translateY, -5%)); // 使用 CSS 变量，默认值 -5%
 }
 
 // 设置 z-index 实现显示优先级: L3 > L4=L2 > L5=L1
@@ -1716,9 +1667,9 @@ onUnmounted(() => {
 }
 
 .character-sprite {
-  max-width: var(--character-maxWidth, 200%);  // 使用 CSS 变量，默认值 200%
-  aspect-ratio: 1 /1.65;  // 固定宽高比（举例）
-  object-fit: contain;   // 保持宽高比，不变形
+  max-width: var(--character-maxWidth, 200%); // 使用 CSS 变量，默认值 200%
+  aspect-ratio: 1 /1.65; // 固定宽高比（举例）
+  object-fit: contain; // 保持宽高比，不变形
   transition:
     filter 0.3s ease,
     transform 0.3s ease;
