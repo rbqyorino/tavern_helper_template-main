@@ -1,5 +1,5 @@
 <template>
-  <div class="gal-container" :class="{ 'no-transition': isFastForwarding }">
+  <div class="gal-container" :class="{ 'no-transition': isFastForwarding }" @dblclick="handleDoubleClick">
     <!-- 背景层 -->
     <div class="background-layer">
       <transition name="bg-transition">
@@ -248,6 +248,9 @@ const backlogDialogues = ref<BacklogDialogue[]>([]);
 
 // 快进模式状态（用于禁用过渡动画）
 const isFastForwarding = ref(false);
+
+// 全屏状态
+const isFullscreen = ref(false);
 
 // 初始化当前消息ID
 const initCurrentMessageId = () => {
@@ -1367,6 +1370,63 @@ const setupRestoreListeners = () => {
   window.addEventListener('keydown', restoreUI, { once: true, capture: true });
 };
 
+// 切换全屏
+const toggleFullscreen = async () => {
+  try {
+    if (!isFullscreen.value) {
+      // 进入全屏
+      const container = document.querySelector('.gal-container') as HTMLElement;
+      if (container) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          (container as any).webkitRequestFullscreen();
+        } else if ((container as any).mozRequestFullScreen) {
+          (container as any).mozRequestFullScreen();
+        } else if ((container as any).msRequestFullscreen) {
+          (container as any).msRequestFullscreen();
+        }
+      }
+    } else {
+      // 退出全屏
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+    }
+  } catch (error) {
+    console.error('切换全屏失败:', error);
+  }
+};
+
+// 处理双击事件
+const handleDoubleClick = (event: MouseEvent) => {
+  // 检查点击目标是否在对话框内
+  const dialogueLayer = (event.target as HTMLElement).closest('.dialogue-layer');
+  if (dialogueLayer) {
+    // 点击在对话框内，不触发全屏
+    return;
+  }
+
+  toggleFullscreen();
+};
+
+// 监听全屏变化事件
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!(
+    document.fullscreenElement ||
+    (document as any).webkitFullscreenElement ||
+    (document as any).mozFullScreenElement ||
+    (document as any).msFullscreenElement
+  );
+  console.log('全屏状态变化:', isFullscreen.value);
+};
+
 // 处理消息 - 初始化消息并开始处理
 const handleMessage = async (message: string) => {
   console.log('处理消息内容:', message);
@@ -1474,6 +1534,12 @@ onMounted(() => {
   // 注册键盘监听器
   window.addEventListener('keydown', handleKeydown);
 
+  // 注册全屏变化事件监听器
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+  document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
   // 获取当前消息
   try {
     if (typeof getCurrentMessageId !== 'undefined' && typeof getChatMessages !== 'undefined') {
@@ -1510,6 +1576,12 @@ onUnmounted(() => {
 
   // 移除键盘监听器
   window.removeEventListener('keydown', handleKeydown);
+
+  // 移除全屏变化事件监听器
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+  document.removeEventListener('msfullscreenchange', handleFullscreenChange);
 
   // 清理所有呼吸动画
   Object.keys(characters.value).forEach(pos => {
