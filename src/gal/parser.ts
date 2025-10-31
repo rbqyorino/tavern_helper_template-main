@@ -236,19 +236,19 @@ export class MessageParser {
 
     switch (type) {
       case 'sprite':
+        baseUrl = 'https://ik.imagekit.io/yorino/sprite/';
+        extension = '.webp';
+        break;
       case 'bg':
-        // 新的基础URL（只修改背景和立绘）
-        baseUrl = 'https://ik.imagekit.io/yorino/';
-        extension = '.png';
+        baseUrl = 'https://ik.imagekit.io/yorino/bg/';
+        extension = '.webp';
         break;
       case 'cg':
-        // CG保持原有URL
-        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/cg/';
-        extension = '.png';
+        baseUrl = 'https://ik.imagekit.io/yorino/cg/';
+        extension = '.webp';
         break;
       case 'bgm':
-        // BGM保持原有URL
-        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/bgm/';
+        baseUrl = 'https://ik.imagekit.io/yorino/bgm/';
         extension = '.mp3';
         break;
     }

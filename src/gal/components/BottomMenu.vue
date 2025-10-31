@@ -25,57 +25,57 @@ const menuElement = ref<HTMLElement | null>(null); // 菜单 DOM 引用
 const menuIcons = [
   {
     name: 'skip',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_skip.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_skip.webp',
     width: 71,
     desc: '快进文本（未制作）',
   },
   {
     name: 'auto',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_auto.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_auto.webp',
     width: 68,
     desc: '自动阅读文本',
   },
   {
     name: 'prev',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_selback.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_selback.webp',
     width: 72,
     desc: '回到上个选项（未制作）',
   },
   {
     name: 'next',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_selnext.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_selnext.webp',
     width: 74,
     desc: '前往下个选项（未制作）',
   },
-  { name: 'voice', url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_voice.png', width: 84, desc: '音乐设置' },
+  { name: 'voice', url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_voice.webp', width: 84, desc: '音乐设置' },
   {
     name: 'fav',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_favo.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_favo.webp',
     width: 62,
     desc: '进行语言收藏（未制作）',
   },
-  { name: 'log', url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_blog.png', width: 67, desc: '打开剧情回想' },
+  { name: 'log', url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_blog.webp', width: 67, desc: '打开剧情回想' },
   {
     name: 'config',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_config.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_config.webp',
     width: 92,
     desc: '打开设置界面',
   },
   {
     name: 'graph',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_graph.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_graph.webp',
     width: 81,
     desc: '打开甜蜜量表（未制作）',
   },
   {
     name: 'lock',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_lock.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_lock.webp',
     width: 32,
     desc: '固定系统菜单',
   },
   {
     name: 'close',
-    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_close.png',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_close.webp',
     width: 32,
     desc: '隐藏文本框',
   },
@@ -221,7 +221,7 @@ watch(
   left: 0;
   width: 100%;
   height: 52px;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/dock01.png') center no-repeat;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/dock01.webp') center no-repeat;
   background-size: 1920px 52px;
   display: flex;
   align-items: center;

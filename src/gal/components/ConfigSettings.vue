@@ -476,7 +476,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/sy_bg.png');
+  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/sy_bg.webp');
   background-size: 100% 100%;
   background-repeat: no-repeat;
   z-index: 0;
@@ -639,7 +639,7 @@ onUnmounted(() => {
   transform: translateY(-50%) rotate(90deg);
   width: 50px;
   height: 50px;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/spin.png') no-repeat center;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/spin.webp') no-repeat center;
   background-size: contain;
   cursor: grab;
 
@@ -732,23 +732,23 @@ onUnmounted(() => {
 
   // 各个标签的背景图
   &.tab-basic {
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabbasic.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabbasic.webp');
   }
 
   &.tab-sound {
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabsound.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabsound.webp');
   }
 
   &.tab-voice {
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabvoice.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabvoice.webp');
   }
 
   &.tab-dialog {
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabdialog.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabdialog.webp');
   }
 
   &.tab-guide {
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabguide.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_tabguide.webp');
   }
 }
 
@@ -780,7 +780,7 @@ onUnmounted(() => {
   &.btn-default {
     width: 141.7px; // 109px * 1.3 = 141.7px (218 * 0.65)
     height: 54.6px; // 42px * 1.3 = 54.6px (84 * 0.65)
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_default.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_default.webp');
     background-size: 141.7px 163.8px; // 109px * 1.3, 126px * 1.3
   }
 
@@ -788,7 +788,7 @@ onUnmounted(() => {
   &.btn-return {
     width: 128.05px; // 98.5px * 1.3 = 128.05px (197 * 0.65)
     height: 54.6px; // 42px * 1.3
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_return.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_return.webp');
     background-size: 128.05px 163.8px; // 98.5px * 1.3, 126px * 1.3
   }
 
@@ -796,7 +796,7 @@ onUnmounted(() => {
   &.btn-title {
     width: 150.15px; // 115.5px * 1.3 = 150.15px (231 * 0.65)
     height: 54.6px; // 42px * 1.3
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_title.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_title.webp');
     background-size: 150.15px 163.8px; // 115.5px * 1.3, 126px * 1.3
   }
 
@@ -804,7 +804,7 @@ onUnmounted(() => {
   &.btn-end {
     width: 139.75px; // 107.5px * 1.3 = 139.75px (215 * 0.65)
     height: 54.6px; // 42px * 1.3
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_end.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_end.webp');
     background-size: 139.75px 163.8px; // 107.5px * 1.3, 126px * 1.3
   }
 }

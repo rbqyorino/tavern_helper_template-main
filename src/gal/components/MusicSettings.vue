@@ -259,7 +259,7 @@ onUnmounted(() => {
   overflow: hidden;
   font-family: 'Noto Serif SC', serif;
   z-index: 10000;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bg_favo.png') no-repeat center / 100% 100%;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bg_favo.webp') no-repeat center / 100% 100%;
 }
 
 // 背景
@@ -269,7 +269,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bg_favo.png') no-repeat center / 100% 100%;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bg_favo.webp') no-repeat center / 100% 100%;
   z-index: 0;
   pointer-events: none;
 }
@@ -428,9 +428,9 @@ onUnmounted(() => {
   position: absolute;
   top: 50%;
   transform: translateY(-50%) rotate(90deg); // 旋转90度使竖向图片变横向
-  width: 50px; // 调整为 75px (30 * 2.5) 以完美匹配 spin.png 旋转后的比例
+  width: 50px; // 调整为 75px (30 * 2.5) 以完美匹配 spin.webp 旋转后的比例
   height: 50px; // 恢复为 30px
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/spin.png') no-repeat center;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/spin.webp') no-repeat center;
   background-size: contain;
   cursor: grab;
 
@@ -446,7 +446,7 @@ onUnmounted(() => {
   bottom: 10px;
   width: 150px;
   height: 60px;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_ret.png') no-repeat center top;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_ret.webp') no-repeat center top;
   background-size: 100% 200%;
   cursor: pointer;
   transition: background-position 0.15s ease;

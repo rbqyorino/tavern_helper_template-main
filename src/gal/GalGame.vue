@@ -53,7 +53,7 @@
         <!-- 自动播放指示图标 -->
         <transition name="fade">
           <div v-if="isAutoPlaying" class="auto-indicator">
-            <img src="https://gitgud.io/RBQ/amakano3/-/raw/master/menu/auto.png" alt="自动" />
+            <img src="https://gitgud.io/RBQ/amakano3/-/raw/master/menu/auto.webp" alt="自动" />
           </div>
         </transition>
       </div>
@@ -1795,7 +1795,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.png') no-repeat center / cover;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.webp') no-repeat center / cover;
   opacity: var(--dialogue-bg-opacity, 0.7);
   z-index: 0;
   pointer-events: none;
@@ -1825,7 +1825,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/name.png') no-repeat center / 100% 100%;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/name.webp') no-repeat center / 100% 100%;
   opacity: 0.8;
   z-index: -1;
   pointer-events: none;
@@ -1933,7 +1933,7 @@ onUnmounted(() => {
   position: absolute;
   top: 20px;
   left: 0;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bt_bgm.png') no-repeat center / 100% 100%;
+  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bt_bgm.webp') no-repeat center / 100% 100%;
   z-index: 6;
   display: flex;
   align-items: center;

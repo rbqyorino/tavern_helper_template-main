@@ -46,12 +46,12 @@ defineEmits<{
 
   // "是" 按钮
   &.btn-on {
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_on02.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_on02.webp');
   }
 
   // "否" 按钮
   &.btn-off {
-    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_off02.png');
+    background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/config/bt_off02.webp');
   }
 
   // 选中状态：显示雪碧图第2部分（向上偏移一个等分的高度）
