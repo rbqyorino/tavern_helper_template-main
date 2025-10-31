@@ -231,34 +231,34 @@ export class MessageParser {
     }
 
     // 根据类型确定基础URL
-    let baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master';
+    let baseUrl = '';
     let extension = '.png';
 
     switch (type) {
       case 'sprite':
-        baseUrl += '/sprite';
-        extension = '.png';
-        break;
       case 'bg':
-        baseUrl += '/bg';
+        // 新的基础URL（只修改背景和立绘）
+        baseUrl = 'https://ik.imagekit.io/yorino/';
         extension = '.png';
         break;
       case 'cg':
-        baseUrl += '/cg';
+        // CG保持原有URL
+        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/cg/';
         extension = '.png';
         break;
       case 'bgm':
-        baseUrl += '/bgm';
+        // BGM保持原有URL
+        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/bgm/';
         extension = '.mp3';
         break;
     }
 
     // 如果已经有扩展名，直接使用
     if (/\.(png|jpg|jpeg|gif|webp|mp3|ogg|wav)$/i.test(alias)) {
-      return `${baseUrl}/${alias}`;
+      return `${baseUrl}${alias}`;
     }
 
     // 添加默认扩展名
-    return `${baseUrl}/${alias}${extension}`;
+    return `${baseUrl}${alias}${extension}`;
   }
 }
