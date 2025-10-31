@@ -54,7 +54,12 @@ const menuIcons = [
     width: 62,
     desc: '进行语言收藏（未制作）',
   },
-  { name: 'log', url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_blog.webp', width: 67, desc: '打开剧情回想' },
+  {
+    name: 'log',
+    url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_blog.webp',
+    width: 67,
+    desc: '打开剧情回想',
+  },
   {
     name: 'config',
     url: 'https://gitgud.io/RBQ/amakano3/-/raw/master/menu/bt_config.webp',
@@ -184,6 +189,9 @@ watch(
 </script>
 
 <template>
+  <!-- 底部触发热区：鼠标移到屏幕底部时触发菜单显示 -->
+  <div v-if="!isLocked" class="menu-trigger-zone" @mouseenter="handleMouseEnter"></div>
+
   <div ref="menuElement" class="bottom-menu" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
     <!-- 左侧信息区域 -->
     <div class="info-section">
@@ -215,6 +223,19 @@ watch(
 </template>
 
 <style scoped lang="scss">
+// 底部触发热区：固定在屏幕最底部，用于触发菜单显示
+.menu-trigger-zone {
+  position: fixed;
+  bottom: 0px;
+  left: 0;
+  width: 100%;
+  height: 15px;
+  z-index: 999; // 略低于菜单的 1000
+  background: transparent; // 透明背景
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .bottom-menu {
   position: fixed;
   bottom: -15px;
