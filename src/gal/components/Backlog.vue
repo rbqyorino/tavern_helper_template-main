@@ -403,7 +403,7 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  font-family: 'Noto Serif CJK', serif;
+  font-family: 'Noto Serif SC', serif;
   z-index: 10000;
   background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bg.png') no-repeat center / cover;
 }

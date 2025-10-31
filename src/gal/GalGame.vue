@@ -1612,7 +1612,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fontsapi.zeoseven.com/285/main/result.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
 
 .gal-container {
   position: relative;
@@ -1621,7 +1621,7 @@ onUnmounted(() => {
   min-height: 600px;
   overflow: hidden;
   background: #000;
-  font-family: 'Noto Serif CJK', serif;
+  font-family: 'Noto Serif SC', serif;
   font-weight: normal;
 }
 

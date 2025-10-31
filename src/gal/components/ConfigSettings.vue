@@ -456,7 +456,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import url('https://fontsapi.zeoseven.com/285/main/result.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
 
 .config-settings {
   position: fixed;
@@ -465,7 +465,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   z-index: 2000;
-  font-family: 'Noto Serif CJK', serif;
+  font-family: 'Noto Serif SC', serif;
   cursor: context-menu;
 }
 

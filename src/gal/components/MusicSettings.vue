@@ -248,7 +248,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fontsapi.zeoseven.com/285/main/result.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
 
 .music-settings-container {
   position: absolute;
@@ -257,7 +257,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: 'Noto Serif CJK', serif;
+  font-family: 'Noto Serif SC', serif;
   z-index: 10000;
   background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bg_favo.png') no-repeat center / 100% 100%;
 }
