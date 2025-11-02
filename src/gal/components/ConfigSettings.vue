@@ -61,63 +61,79 @@
 
       <!-- 右侧设置区域 -->
       <div class="right-section">
-        <!-- 对话框字体大小 -->
-        <div class="control-section">
-          <div class="fontsize-title">对话框字体大小</div>
-          <div class="slider-container">
-            <span class="fontsize-label-left">小</span>
-            <div class="slider-track" ref="fontSizeTrack" @click="handleFontSizeTrackClick">
-              <div
-                class="slider-thumb"
-                ref="fontSizeThumb"
-                :style="{ left: fontSizeThumbPosition + 'px' }"
-                @mousedown="startFontSizeDrag"
-              ></div>
+        <!-- 可滚动的控制区 -->
+        <div class="scrollable-controls">
+          <!-- 对话框字体大小 -->
+          <div class="control-section">
+            <div class="fontsize-title">对话框字体大小</div>
+            <div class="slider-container">
+              <span class="fontsize-label-left">小</span>
+              <div class="slider-track" ref="fontSizeTrack" @click="handleFontSizeTrackClick">
+                <div
+                  class="slider-thumb"
+                  ref="fontSizeThumb"
+                  :style="{ left: fontSizeThumbPosition + 'px' }"
+                  @mousedown="startFontSizeDrag"
+                ></div>
+              </div>
+              <span class="fontsize-label-right">大</span>
             </div>
-            <span class="fontsize-label-right">大</span>
+          </div>
+
+          <!-- 文本速度 -->
+          <div class="control-section">
+            <div class="textspeed-title">文本速度</div>
+            <div class="slider-container">
+              <span class="textspeed-label-left">慢</span>
+              <div class="slider-track" ref="textSpeedTrack" @click="handleTextSpeedTrackClick">
+                <div
+                  class="slider-thumb"
+                  ref="textSpeedThumb"
+                  :style="{ left: textSpeedThumbPosition + 'px' }"
+                  @mousedown="startTextSpeedDrag"
+                ></div>
+              </div>
+              <span class="textspeed-label-right">快</span>
+            </div>
+          </div>
+
+          <!-- 背景不透明度 -->
+          <div class="control-section">
+            <div class="bgopacity-title">背景不透明度</div>
+            <div class="slider-container">
+              <span class="bgopacity-label-left">0%</span>
+              <div class="slider-track" ref="opacityTrack" @click="handleOpacityTrackClick">
+                <div
+                  class="slider-thumb"
+                  ref="opacityThumb"
+                  :style="{ left: opacityThumbPosition + 'px' }"
+                  @mousedown="startOpacityDrag"
+                ></div>
+              </div>
+              <span class="bgopacity-label-right">100%</span>
+            </div>
+          </div>
+
+          <!-- 对话框字体颜色 -->
+          <div class="control-section">
+            <div class="color-title">对话框字体颜色</div>
+            <ColorPicker v-model="dialogueTextColor" />
+          </div>
+
+          <!-- 名字字体颜色 -->
+          <div class="control-section">
+            <div class="color-title">名字字体颜色</div>
+            <ColorPicker v-model="characterNameColor" />
           </div>
         </div>
 
-        <!-- 文本速度 -->
-        <div class="control-section">
-          <div class="textspeed-title">文本速度</div>
-          <div class="slider-container">
-            <span class="textspeed-label-left">慢</span>
-            <div class="slider-track" ref="textSpeedTrack" @click="handleTextSpeedTrackClick">
-              <div
-                class="slider-thumb"
-                ref="textSpeedThumb"
-                :style="{ left: textSpeedThumbPosition + 'px' }"
-                @mousedown="startTextSpeedDrag"
-              ></div>
-            </div>
-            <span class="textspeed-label-right">快</span>
-          </div>
-        </div>
-
-        <!-- 背景不透明度 -->
-        <div class="control-section">
-          <div class="bgopacity-title">背景不透明度</div>
-          <div class="slider-container">
-            <span class="bgopacity-label-left">0%</span>
-            <div class="slider-track" ref="opacityTrack" @click="handleOpacityTrackClick">
-              <div
-                class="slider-thumb"
-                ref="opacityThumb"
-                :style="{ left: opacityThumbPosition + 'px' }"
-                @mousedown="startOpacityDrag"
-              ></div>
-            </div>
-            <span class="bgopacity-label-right">100%</span>
-          </div>
-        </div>
-
-        <!-- 展示界面 -->
+        <!-- 固定的展示界面 -->
         <div class="preview-section">
           <div class="preview-title">展示界面</div>
           <div class="preview-box">
             <div class="preview-bg" :style="{ opacity: opacity }"></div>
-            <span ref="previewText" class="preview-text" :style="{ fontSize: fontSize + 'px' }">甜蜜女友3真好玩</span>
+            <div class="preview-character-name" :style="{ color: characterNameColor }">角色名</div>
+            <span ref="previewText" class="preview-text" :style="{ fontSize: fontSize + 'px', color: dialogueTextColor }">甜蜜女友3真好玩</span>
           </div>
         </div>
       </div>
@@ -136,6 +152,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import ToggleSwitch from './ToggleSwitch.vue';
+import ColorPicker from './ColorPicker.vue';
 import gsap from 'gsap';
 import { useConfigStore } from '../stores/config';
 import { storeToRefs } from 'pinia';
@@ -147,10 +164,10 @@ const emit = defineEmits<{
 
 // 使用 config store
 const configStore = useConfigStore();
-const { breathingEffect, keyboardShortcut, fullscreenDblClick, scrollUpLog, fontSize, textSpeed, opacity, autoSpeed } = storeToRefs(configStore);
+const { breathingEffect, keyboardShortcut, fullscreenDblClick, scrollUpLog, fontSize, textSpeed, opacity, autoSpeed, dialogueTextColor, characterNameColor } = storeToRefs(configStore);
 
 // 监听配置变化并自动保存
-watch([breathingEffect, keyboardShortcut, fullscreenDblClick, scrollUpLog, fontSize, textSpeed, opacity, autoSpeed], () => {
+watch([breathingEffect, keyboardShortcut, fullscreenDblClick, scrollUpLog, fontSize, textSpeed, opacity, autoSpeed, dialogueTextColor, characterNameColor], () => {
   configStore.saveConfig();
 }, { deep: true });
 
@@ -567,11 +584,20 @@ onUnmounted(() => {
   width: 35%;
   display: flex;
   flex-direction: column;
+  height: 80%;
+  gap: 0;
+}
+
+// 可滚动的控制区
+.scrollable-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: clamp(8px, 1.5vw, 15px);
-  max-height: 80%;
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 8px; // 为滚动条留空间
+  margin-bottom: 10px;
 }
 
 .control-section {
@@ -597,6 +623,13 @@ onUnmounted(() => {
 }
 
 .bgopacity-title {
+  font-size: clamp(1rem, 2vw, 2rem);
+  font-weight: 800;
+  color: #453118;
+  text-align: center;
+}
+
+.color-title {
   font-size: clamp(1rem, 2vw, 2rem);
   font-weight: 800;
   color: #453118;
@@ -666,7 +699,9 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: clamp(5px, 1vw, 10px);
-  margin-top: clamp(5px, 1vw, 10px);
+  flex-shrink: 0; // 防止被压缩
+  padding-top: 10px;
+  border-top: 1px solid rgba(69, 49, 24, 0.2);
 }
 
 .preview-title {
@@ -680,10 +715,12 @@ onUnmounted(() => {
   width: 100%;
   padding: 20px 30px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 80px;
   position: relative;
+  gap: 8px;
 }
 
 .preview-bg {
@@ -704,15 +741,26 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
+.preview-character-name {
+  font-weight: 800;
+  font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+  -webkit-text-stroke: 2px #000000;
+  paint-order: stroke fill;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  transition: color 0.2s ease;
+}
+
 .preview-text {
   font-weight: 800;
-  color: #ffffff;
   -webkit-text-stroke: 2.5px #000000;
   paint-order: stroke fill;
   text-align: center;
   line-height: 1.8;
   position: relative;
   z-index: 2;
+  transition: color 0.2s ease;
 }
 
 // 顶部标签页区域

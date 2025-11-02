@@ -13,6 +13,8 @@ const ConfigSchema = z.object({
   fontSize: z.number().min(16).max(32).default(24), // 对话框字体大小 16-32px
   textSpeed: z.number().min(0).max(1).default(0.5), // 文本速度 0-1 (0慢, 1快)
   opacity: z.number().min(0).max(1).default(0.8), // 背景不透明度 0-1
+  dialogueTextColor: z.string().default('#ffffff'), // 对话框字体颜色
+  characterNameColor: z.string().default('#ffffff'), // 名字字体颜色
 });
 
 type Config = z.infer<typeof ConfigSchema>;
@@ -27,6 +29,8 @@ export const useConfigStore = defineStore('galConfig', () => {
   const fontSize = ref(24);
   const textSpeed = ref(0.5);
   const opacity = ref(0.8);
+  const dialogueTextColor = ref('#ffffff');
+  const characterNameColor = ref('#ffffff');
 
   // 从酒馆变量加载配置
   const loadConfig = () => {
@@ -49,6 +53,8 @@ export const useConfigStore = defineStore('galConfig', () => {
         fontSize.value = parsed.fontSize;
         textSpeed.value = parsed.textSpeed;
         opacity.value = parsed.opacity;
+        dialogueTextColor.value = parsed.dialogueTextColor;
+        characterNameColor.value = parsed.characterNameColor;
 
         console.log('已加载配置:', parsed);
       } else {
@@ -76,6 +82,8 @@ export const useConfigStore = defineStore('galConfig', () => {
         fontSize: fontSize.value,
         textSpeed: textSpeed.value,
         opacity: opacity.value,
+        dialogueTextColor: dialogueTextColor.value,
+        characterNameColor: characterNameColor.value,
       };
 
       const iframeName = getIframeName();
@@ -98,6 +106,8 @@ export const useConfigStore = defineStore('galConfig', () => {
     fontSize.value = defaultConfig.fontSize;
     textSpeed.value = defaultConfig.textSpeed;
     opacity.value = defaultConfig.opacity;
+    dialogueTextColor.value = defaultConfig.dialogueTextColor;
+    characterNameColor.value = defaultConfig.characterNameColor;
 
     saveConfig();
     console.log('已重置为默认配置');
@@ -125,6 +135,8 @@ export const useConfigStore = defineStore('galConfig', () => {
     fontSize,
     textSpeed,
     opacity,
+    dialogueTextColor,
+    characterNameColor,
 
     // 方法
     loadConfig,

@@ -41,11 +41,11 @@
       <div class="dialogue-box" :style="{ '--dialogue-bg-opacity': opacity }">
         <!-- 名字框 -->
         <div v-if="currentDialogue && currentDialogue.type === 'character'" class="character-name-box">
-          <span class="character-name">{{ currentDialogue.characterName }}</span>
+          <span class="character-name" :style="{ color: characterNameColor }">{{ currentDialogue.characterName }}</span>
         </div>
 
         <!-- 对话内容 -->
-        <div class="dialogue-content" :style="{ fontSize: fontSize + 'px' }">
+        <div class="dialogue-content" :style="{ fontSize: fontSize + 'px', color: dialogueTextColor }">
           <span ref="dialogueText">{{ displayedText }}</span>
           <span v-if="isTyping" class="typing-cursor"></span>
         </div>
@@ -136,7 +136,7 @@ import { storeToRefs } from 'pinia';
 
 // 使用配置 store
 const configStore = useConfigStore();
-const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, fullscreenDblClick, scrollUpLog } = storeToRefs(configStore);
+const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, fullscreenDblClick, scrollUpLog, dialogueTextColor, characterNameColor } = storeToRefs(configStore);
 
 // 状态定义
 interface Character {
