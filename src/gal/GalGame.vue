@@ -136,7 +136,7 @@ import { storeToRefs } from 'pinia';
 
 // 使用配置 store
 const configStore = useConfigStore();
-const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, fullscreenDblClick } = storeToRefs(configStore);
+const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, fullscreenDblClick, scrollUpLog } = storeToRefs(configStore);
 
 // 状态定义
 interface Character {
@@ -1135,8 +1135,13 @@ const closeBacklog = () => {
 
 // 处理滚轮事件
 const handleWheel = (event: WheelEvent) => {
+  // 如果 ConfigSettings 或 MusicSettings 显示，允许默认滚轮行为（用于滚动条滚动）
+  if (showConfigSettings.value || showMusicSettings.value) {
+    return;
+  }
+
   // 向上滚动：打开 backlog
-  if (!showBacklog.value && !isUIHidden.value && choices.value.length === 0 && event.deltaY < -50) {
+  if (scrollUpLog.value && !showBacklog.value && !isUIHidden.value && choices.value.length === 0 && event.deltaY < -50) {
     event.preventDefault();
     openBacklog();
     return;

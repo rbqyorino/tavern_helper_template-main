@@ -8,6 +8,7 @@ const ConfigSchema = z.object({
   breathingEffect: z.boolean().default(true), // 是否开启呼吸特效
   keyboardShortcut: z.boolean().default(true), // 是否启用快捷键推进对话
   fullscreenDblClick: z.boolean().default(true), // 是否开启双击全屏功能
+  scrollUpLog: z.boolean().default(true), // 是否开启滚轮向上触发Log
   autoSpeed: z.number().min(0).max(1).default(0.5), // 自动模式速度 0-1 (0慢, 1快)
   fontSize: z.number().min(16).max(32).default(24), // 对话框字体大小 16-32px
   textSpeed: z.number().min(0).max(1).default(0.5), // 文本速度 0-1 (0慢, 1快)
@@ -21,6 +22,7 @@ export const useConfigStore = defineStore('galConfig', () => {
   const breathingEffect = ref(true);
   const keyboardShortcut = ref(true);
   const fullscreenDblClick = ref(true);
+  const scrollUpLog = ref(true);
   const autoSpeed = ref(0.5);
   const fontSize = ref(24);
   const textSpeed = ref(0.5);
@@ -42,6 +44,7 @@ export const useConfigStore = defineStore('galConfig', () => {
         breathingEffect.value = parsed.breathingEffect;
         keyboardShortcut.value = parsed.keyboardShortcut;
         fullscreenDblClick.value = parsed.fullscreenDblClick;
+        scrollUpLog.value = parsed.scrollUpLog;
         autoSpeed.value = parsed.autoSpeed;
         fontSize.value = parsed.fontSize;
         textSpeed.value = parsed.textSpeed;
@@ -68,6 +71,7 @@ export const useConfigStore = defineStore('galConfig', () => {
         breathingEffect: breathingEffect.value,
         keyboardShortcut: keyboardShortcut.value,
         fullscreenDblClick: fullscreenDblClick.value,
+        scrollUpLog: scrollUpLog.value,
         autoSpeed: autoSpeed.value,
         fontSize: fontSize.value,
         textSpeed: textSpeed.value,
@@ -89,6 +93,7 @@ export const useConfigStore = defineStore('galConfig', () => {
     breathingEffect.value = defaultConfig.breathingEffect;
     keyboardShortcut.value = defaultConfig.keyboardShortcut;
     fullscreenDblClick.value = defaultConfig.fullscreenDblClick;
+    scrollUpLog.value = defaultConfig.scrollUpLog;
     autoSpeed.value = defaultConfig.autoSpeed;
     fontSize.value = defaultConfig.fontSize;
     textSpeed.value = defaultConfig.textSpeed;
@@ -115,6 +120,7 @@ export const useConfigStore = defineStore('galConfig', () => {
     breathingEffect,
     keyboardShortcut,
     fullscreenDblClick,
+    scrollUpLog,
     autoSpeed,
     fontSize,
     textSpeed,

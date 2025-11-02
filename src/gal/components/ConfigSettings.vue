@@ -35,6 +35,12 @@
           <ToggleSwitch v-model="fullscreenDblClick" />
         </div>
 
+        <!-- 滚轮向上触发Log设置 -->
+        <div class="setting-item">
+          <div class="scrolluplog-title">是否开启滚轮向上触发Log</div>
+          <ToggleSwitch v-model="scrollUpLog" />
+        </div>
+
         <!-- 自动模式速度 -->
         <div class="setting-item">
           <div class="autospeed-title">自动模式速度</div>
@@ -141,10 +147,10 @@ const emit = defineEmits<{
 
 // 使用 config store
 const configStore = useConfigStore();
-const { breathingEffect, keyboardShortcut, fullscreenDblClick, fontSize, textSpeed, opacity, autoSpeed } = storeToRefs(configStore);
+const { breathingEffect, keyboardShortcut, fullscreenDblClick, scrollUpLog, fontSize, textSpeed, opacity, autoSpeed } = storeToRefs(configStore);
 
 // 监听配置变化并自动保存
-watch([breathingEffect, keyboardShortcut, fullscreenDblClick, fontSize, textSpeed, opacity, autoSpeed], () => {
+watch([breathingEffect, keyboardShortcut, fullscreenDblClick, scrollUpLog, fontSize, textSpeed, opacity, autoSpeed], () => {
   configStore.saveConfig();
 }, { deep: true });
 
@@ -535,6 +541,12 @@ onUnmounted(() => {
 }
 
 .fullscreen-title {
+  font-size: clamp(1rem, 2vw, 2rem);
+  font-weight: 800;
+  color: #453118;
+}
+
+.scrolluplog-title {
   font-size: clamp(1rem, 2vw, 2rem);
   font-weight: 800;
   color: #453118;
