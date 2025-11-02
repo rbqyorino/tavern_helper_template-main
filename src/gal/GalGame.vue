@@ -1,7 +1,7 @@
 <template>
   <div class="gal-container" :class="{ 'no-transition': isFastForwarding }" @dblclick="handleDoubleClick">
     <!-- 背景层 -->
-    <div class="background-layer">
+    <div class="background-layer" v-show="!(currentCg && !hideCg)">
       <transition name="bg-transition">
         <img
           v-if="currentBackground"
@@ -13,15 +13,19 @@
       </transition>
     </div>
 
-    <!-- CG层 -->
+    <!-- CG层 - 全屏覆盖 -->
     <transition name="fade">
-      <div v-if="currentCg && !hideCg" class="cg-layer">
-        <img :src="currentCg" class="cg-image" alt="CG" />
-      </div>
+      <img
+        v-if="currentCg && !hideCg"
+        :key="currentCg"
+        :src="currentCg"
+        class="cg-image"
+        alt="CG"
+      />
     </transition>
 
     <!-- 角色立绘层 -->
-    <div class="character-layer">
+    <div class="character-layer" v-show="!(currentCg && !hideCg)">
       <div v-for="pos in ['L1', 'L2', 'L3', 'L4', 'L5']" :key="pos" :class="['character-slot', `position-${pos}`]">
         <transition name="fade">
           <img
@@ -1697,23 +1701,15 @@ onUnmounted(() => {
   }
 }
 
-// CG层
-.cg-layer {
+// CG层 - 全屏覆盖
+.cg-image {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 70%;
+  height: 100%;
+  object-fit: fill;
   z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cg-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
 }
 
 // 角色层
