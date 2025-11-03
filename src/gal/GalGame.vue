@@ -39,6 +39,30 @@
       </div>
     </div>
 
+    <!-- 左下角头部立绘层 -->
+    <div class="head-portrait-layer" v-show="!(currentCg && !hideCg)">
+      <transition name="fade">
+        <img
+          v-if="characters['L']"
+          :src="characters['L']!.sprite"
+          :class="['head-portrait', { active: characters['L']!.isActive, inactive: !characters['L']!.isActive }]"
+          alt="头部立绘"
+        />
+      </transition>
+    </div>
+
+    <!-- 右下角头部立绘层 -->
+    <div class="head-portrait-right-layer" v-show="!(currentCg && !hideCg)">
+      <transition name="fade">
+        <img
+          v-if="characters['R']"
+          :src="characters['R']!.sprite"
+          :class="['head-portrait-right', { active: characters['R']!.isActive, inactive: !characters['R']!.isActive }]"
+          alt="头部立绘"
+        />
+      </transition>
+    </div>
+
     <!-- 对话框层 -->
     <div v-show="!isUIHidden" class="dialogue-layer" @click="handleDialogueClick">
       <!-- 主对话框 -->
@@ -158,6 +182,8 @@ const currentBgmName = ref<string>('');
 const showBgmNotification = ref(false);
 
 const characters = ref<Record<string, Character | undefined>>({
+  L: undefined,
+  R: undefined,
   L1: undefined,
   L2: undefined,
   L3: undefined,
@@ -552,7 +578,7 @@ const setCg = (cg: string) => {
 
 // 设置角色
 const setCharacter = (
-  position: 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
+  position: 'L' | 'R' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
   characterName: string,
   sprite: string | undefined,
   isActive: boolean,
@@ -589,11 +615,14 @@ const handleShow = (name: string, sprite: string, position: string, silent = fal
     console.log(`角色登场: ${name} 在位置 ${position}`);
   }
 
+  // 验证position是否为有效的位置
+  const validPosition = position as 'L' | 'R' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+
   // 设置角色立绘（非激活状态）
-  setCharacter(position, name, sprite, false, silent);
+  setCharacter(validPosition, name, sprite, false, silent);
 
   // 记录角色名到位置的映射
-  characterPositions.value.set(name, position);
+  characterPositions.value.set(name, validPosition);
 };
 
 // 处理立绘变更 [alter|角色名|立绘]
@@ -678,6 +707,9 @@ const handleMove = async (name: string, newPosition: string, silent = false) => 
     console.log(`角色移动: ${name} 从 ${oldPosition} 到 ${newPosition}`);
   }
 
+  // 验证newPosition是否为有效的位置
+  const validNewPosition = newPosition as 'L' | 'R' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+
   // 1. 停止旧位置的呼吸动画
   stopBreathing(oldPosition);
 
@@ -690,7 +722,7 @@ const handleMove = async (name: string, newPosition: string, silent = false) => 
   }
 
   // 4. 淡入（新位置）
-  characters.value[newPosition] = {
+  characters.value[validNewPosition] = {
     name: character.name,
     sprite: character.sprite,
     isActive: character.isActive,
@@ -698,12 +730,12 @@ const handleMove = async (name: string, newPosition: string, silent = false) => 
   };
 
   // 5. 更新映射
-  characterPositions.value.set(name, newPosition);
+  characterPositions.value.set(name, validNewPosition);
 
   // 6. 重新启动呼吸动画
   if (!silent) {
     nextTick(() => {
-      startBreathing(newPosition);
+      startBreathing(validNewPosition);
     });
   }
 };
@@ -1088,6 +1120,8 @@ const resetGameState = () => {
     stopBreathing(pos);
   });
   characters.value = {
+    L: undefined,
+    R: undefined,
     L1: undefined,
     L2: undefined,
     L3: undefined,
@@ -1317,6 +1351,8 @@ const parseHistoryDialogues = () => {
             .filter(l => l);
           let currentBg = '';
           let currentChars: Record<string, Character | undefined> = {
+            L: undefined,
+            R: undefined,
             L1: undefined,
             L2: undefined,
             L3: undefined,
@@ -1851,7 +1887,7 @@ onUnmounted(() => {
   // 字体大小由内联样式控制，不再使用固定值
   color: #ffffff;
   line-height: 1.8;
-  width: 100%;
+  width: 75%;
   font-weight: 800;
   -webkit-text-stroke: 3px #000000;
   paint-order: stroke fill;
@@ -1982,5 +2018,73 @@ onUnmounted(() => {
 .slide-down-leave-to {
   opacity: 0;
   transform: translateX(-100%);
+}
+
+// 左下角头部立绘层
+.head-portrait-layer {
+  position: absolute;
+  bottom: 20px;
+  left: -20px;
+  width: 20%;
+  height: 40%;
+  z-index: 60; // 优先级比L1和L5高
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.head-portrait {
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1; // 1024*1024 的头部立绘
+  object-fit: contain;
+  transform: scale(0.9);   // 或者用 transform 来缩放（0-1之间）
+  transition:
+    filter 0.3s ease,
+    transform 0.3s ease;
+
+  &.active {
+    filter: brightness(1);
+  }
+
+  &.inactive {
+    filter: brightness(1);
+  }
+}
+
+// 右下角头部立绘层（镜像左下角）
+.head-portrait-right-layer {
+  position: absolute;
+  bottom: 20px;
+  right: -20px;
+  width: 20%;
+  height: 40%;
+  z-index: 60; // 优先级比L1和L5高
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.head-portrait-right {
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1; // 1024*1024 的头部立绘
+  object-fit: contain;
+  transform: scale(0.9);   // 或者用 transform 来缩放（0-1之间）
+  transition:
+    filter 0.3s ease,
+    transform 0.3s ease;
+
+  &.active {
+    filter: brightness(1);
+  }
+
+  &.inactive {
+    filter: brightness(1);
+  }
 }
 </style>

@@ -23,7 +23,7 @@ export interface DialogueContent {
 export interface ShowCommand {
   name: string;
   sprite: string;
-  position: 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+  position: 'L' | 'R' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
 }
 
 export interface AlterCommand {
@@ -33,7 +33,7 @@ export interface AlterCommand {
 
 export interface MoveCommand {
   name: string;
-  position: 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+  position: 'L' | 'R' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
 }
 
 export interface ActionCommand {
@@ -78,13 +78,13 @@ export class MessageParser {
   }
 
   // 解析动作 [action|角色名|动作类型] - 用于对话内容中的动作提取
-  static parseAction(text: string): { character: string; type: string } | undefined {
+  static parseAction(text: string): { character: string; type: 'shake' | 'jump_up' | 'jump_down' | 'near' | 'away' } | undefined {
     const match = text.match(/\[action\|([^|]+)\|([^\]]+)\]/);
     if (!match) return undefined;
 
     return {
       character: match[1].trim(),
-      type: match[2].trim(),
+      type: match[2].trim() as 'shake' | 'jump_up' | 'jump_down' | 'near' | 'away',
     };
   }
 
@@ -107,7 +107,7 @@ export class MessageParser {
     return {
       name: match[1].trim(),
       sprite: match[2].trim(),
-      position: match[3].trim() as 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
+      position: match[3].trim() as 'L' | 'R' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
     };
   }
 
@@ -135,7 +135,7 @@ export class MessageParser {
 
     return {
       name: match[1].trim(),
-      position: match[2].trim() as 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
+      position: match[2].trim() as 'L' | 'R' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5',
     };
   }
 
@@ -236,19 +236,19 @@ export class MessageParser {
 
     switch (type) {
       case 'sprite':
-        baseUrl = 'https://ik.imagekit.io/yorino/sprite/';
+        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/sprite/';
         extension = '.webp';
         break;
       case 'bg':
-        baseUrl = 'https://ik.imagekit.io/yorino/bg/';
+        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/bg/';
         extension = '.webp';
         break;
       case 'cg':
-        baseUrl = 'https://ik.imagekit.io/yorino/cg/';
+        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/cg/';
         extension = '.webp';
         break;
       case 'bgm':
-        baseUrl = 'https://ik.imagekit.io/yorino/bgm/';
+        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/bgm/';
         extension = '.mp3';
         break;
     }
