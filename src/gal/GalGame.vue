@@ -40,24 +40,24 @@
     </div>
 
     <!-- 左下角头部立绘层 -->
-    <div class="head-portrait-layer" v-show="!(currentCg && !hideCg)">
+    <div class="head-portrait-layer position-L" v-show="!(currentCg && !hideCg)">
       <transition name="fade">
         <img
           v-if="characters['L']"
           :src="characters['L']!.sprite"
-          :class="['head-portrait', { active: characters['L']!.isActive, inactive: !characters['L']!.isActive }]"
+          :class="['head-portrait character-sprite', { active: characters['L']!.isActive, inactive: !characters['L']!.isActive }]"
           alt="头部立绘"
         />
       </transition>
     </div>
 
     <!-- 右下角头部立绘层 -->
-    <div class="head-portrait-right-layer" v-show="!(currentCg && !hideCg)">
+    <div class="head-portrait-right-layer position-R" v-show="!(currentCg && !hideCg)">
       <transition name="fade">
         <img
           v-if="characters['R']"
           :src="characters['R']!.sprite"
-          :class="['head-portrait-right', { active: characters['R']!.isActive, inactive: !characters['R']!.isActive }]"
+          :class="['head-portrait-right character-sprite', { active: characters['R']!.isActive, inactive: !characters['R']!.isActive }]"
           alt="头部立绘"
         />
       </transition>
@@ -812,9 +812,9 @@ const performAction = (characterName: string, actionType: string) => {
       break;
 
     case 'near':
-      char.scale = 1.2;
+      char.scale = 1.1;
       gsap.to(element, {
-        scale: 1.2,
+        scale: 1.1,
         duration: 0.5,
         ease: 'power2.out',
       });
