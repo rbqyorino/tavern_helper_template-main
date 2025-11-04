@@ -249,6 +249,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                 },
               ],
             },
+            {
+              test: /\.(ya?ml)$/,
+              use: 'yaml-loader',
+              exclude: /node_modules/,
+            },
           ].concat(
             entry.html === undefined
               ? <any[]>[

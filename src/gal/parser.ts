@@ -1,4 +1,5 @@
 // 解析GAL消息格式的工具类
+import cgSeriesConfig from './cg-series.yaml';
 
 export interface ParsedMessage {
   background?: string;
@@ -251,6 +252,44 @@ export class MessageParser {
         baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/bgm/';
         extension = '.mp3';
         break;
+    }
+
+    // CG 类型特殊处理：系列随机选择
+    if (type === 'cg') {
+      // 检测是否已经包含序号（如 "冬桦被舔小穴2"）
+      const numberMatch = alias.match(/^(.+?)(\d+)$/);
+
+      if (numberMatch) {
+        // 已经指定序号，直接使用
+        const finalAlias = alias;
+
+        // 如果已经有扩展名，直接使用
+        if (/\.(png|jpg|jpeg|gif|webp|mp3|ogg|wav)$/i.test(finalAlias)) {
+          return `${baseUrl}${finalAlias}`;
+        }
+
+        // 添加默认扩展名
+        return `${baseUrl}${finalAlias}${extension}`;
+      } else {
+        // 没有指定序号，检查是否是系列名
+        if (cgSeriesConfig[alias]) {
+          // 是系列名，随机选择一个序号
+          const count = cgSeriesConfig[alias];
+          const randomIndex = Math.floor(Math.random() * count) + 1;
+          const finalAlias = `${alias}${randomIndex}`;
+
+          console.log(`[CG系列随机] ${alias} -> ${finalAlias} (共${count}张)`);
+
+          // 如果已经有扩展名，直接使用
+          if (/\.(png|jpg|jpeg|gif|webp|mp3|ogg|wav)$/i.test(finalAlias)) {
+            return `${baseUrl}${finalAlias}`;
+          }
+
+          // 添加默认扩展名
+          return `${baseUrl}${finalAlias}${extension}`;
+        }
+        // 不是系列名，按原逻辑处理（可能是单张CG或不存在的CG）
+      }
     }
 
     // 如果已经有扩展名，直接使用
