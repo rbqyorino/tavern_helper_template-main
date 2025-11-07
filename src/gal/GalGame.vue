@@ -1843,7 +1843,7 @@ onUnmounted(() => {
   position: absolute;
   left: 13%;
   top: 0;
-  transform: translateY(20%);
+  transform: translateY(30%);
   width: 16.3%;
   max-width: 300px; /* 限制最大宽度，防止宽屏时过大 */
   max-height: 47px; /* 限制最大高度 */
