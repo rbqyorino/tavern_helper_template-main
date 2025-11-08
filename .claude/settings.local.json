@@ -15,7 +15,8 @@
       "Bash(pnpm run:gal:build:*)",
       "Bash(pnpm build:gal:*)",
       "Bash(pnpm build:dev:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(pnpm build:rbq:手机:*)"
     ],
     "deny": [],
     "ask": []

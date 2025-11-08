@@ -1,0 +1,43 @@
+# 手机表情包列表
+# 格式: 表情名=表情图片URL
+#
+# 使用方法：
+# 在消息中使用 [emoji-表情名] 来插入表情
+# 例如：[emoji-开心]
+#
+# 提示：
+# - URL应该指向可公开访问的图片链接
+# - 推荐使用正方形图片（宽度和高度相等）
+# - 图片大小建议不超过100KB
+
+# === 基础表情 ===
+开心=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f60a.png
+大笑=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f602.png
+微笑=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f605.png
+伤心=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f622.png
+哭泣=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f62d.png
+生气=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f620.png
+惊讶=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f632.png
+窘迫=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f60f.png
+思考=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f914.png
+
+# === 手势表情 ===
+加油=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f44f.png
+竖起=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f44d.png
+竖下=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f44e.png
+鼓掌=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f4ab.png
+握手=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f91d.png
+比心=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f60d.png
+
+# === 特殊表情 ===
+🚀=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f680.png
+❤️=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/2764.png
+✨=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/2728.png
+🔥=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f525.png
+💯=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f4af.png
+👻=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f47b.png
+🎉=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f389.png
+😂=https://cdn.jsdelivr.net/npm/emoji-datasource-google@7.0.2/img/google/64/1f602.png
+
+# === 自定义表情（示例，可删除或修改） ===
+# 自定义表情名=自定义表情URL

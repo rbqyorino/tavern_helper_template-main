@@ -1,0 +1,374 @@
+/**
+ * RBQ手机模拟器 - 全局样式
+ * Phone Simulator - Global Styles
+ */
+
+/* === CSS变量定义 === */
+:root {
+  --phone-border-color: #333333;
+  --phone-background-color: #ffffff;
+  --phone-bubble-color-mine: #dcf8c6;
+  --phone-bubble-color-other: #ffffff;
+  --phone-text-color: #000000;
+  --phone-status-bar-color: #f0f0f0;
+  --phone-primary-color: #007aff;
+}
+
+/* === 重置样式 === */
+#rbq-phone-app * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+#rbq-phone-app {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  font-size: 14px;
+  color: #000;
+  line-height: 1.5;
+}
+
+/* === 滚动条样式 === */
+#rbq-phone-app ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+#rbq-phone-app ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#rbq-phone-app ::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+#rbq-phone-app ::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+/* === 按钮重置 === */
+#rbq-phone-app button {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+
+/* === 输入框重置 === */
+#rbq-phone-app input,
+#rbq-phone-app textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+#rbq-phone-app input::-webkit-outer-spin-button,
+#rbq-phone-app input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#rbq-phone-app input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* === 图片样式 === */
+#rbq-phone-app img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* === 文本选择 === */
+#rbq-phone-app {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+#rbq-phone-app .rbq-selectable {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+/* === 响应式设计 === */
+@media (max-width: 768px) {
+  #rbq-phone-app {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  #rbq-phone-app {
+    font-size: 12px;
+  }
+}
+
+/* === 颜色变量应用 === */
+.rbq-phone-body {
+  --bubble-color-mine: var(--phone-bubble-color-mine);
+  --bubble-color-other: var(--phone-bubble-color-other);
+  --status-bar-color: var(--phone-status-bar-color);
+}
+
+/* === 打印样式 === */
+@media print {
+  #rbq-phone-app {
+    display: none;
+  }
+}
+
+/* === 深色模式支持（可选） === */
+@media (prefers-color-scheme: dark) {
+  /* 如需支持深色模式，可在此添加样式 */
+}
+
+/* === 辅助类 === */
+.rbq-hidden {
+  display: none !important;
+}
+
+.rbq-visible {
+  display: block !important;
+}
+
+.rbq-invisible {
+  visibility: hidden;
+}
+
+.rbq-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rbq-line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rbq-line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* === 过渡和动画 === */
+.rbq-fade-enter-active,
+.rbq-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.rbq-fade-enter-from,
+.rbq-fade-leave-to {
+  opacity: 0;
+}
+
+.rbq-slide-enter-active,
+.rbq-slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.rbq-slide-enter-from {
+  transform: translateX(100%);
+}
+
+.rbq-slide-leave-to {
+  transform: translateX(-100%);
+}
+
+/* === 禁用状态 === */
+.rbq-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* === 加载动画 === */
+@keyframes rbq-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.rbq-spinner {
+  animation: rbq-spin 1s linear infinite;
+}
+
+/* === 脉冲动画 === */
+@keyframes rbq-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.rbq-pulse {
+  animation: rbq-pulse 2s ease-in-out infinite;
+}
+
+/* === 弹簧效果 === */
+@keyframes rbq-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.rbq-bounce {
+  animation: rbq-bounce 1s ease-in-out infinite;
+}
+
+/* === 水平 Flex 布局辅助 === */
+.rbq-flex {
+  display: flex;
+}
+
+.rbq-flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.rbq-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.rbq-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rbq-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* === 网格布局辅助 === */
+.rbq-grid {
+  display: grid;
+}
+
+.rbq-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.rbq-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* === 间距辅助 === */
+.rbq-m-0 {
+  margin: 0;
+}
+.rbq-m-5 {
+  margin: 5px;
+}
+.rbq-m-10 {
+  margin: 10px;
+}
+.rbq-m-15 {
+  margin: 15px;
+}
+
+.rbq-p-0 {
+  padding: 0;
+}
+.rbq-p-5 {
+  padding: 5px;
+}
+.rbq-p-10 {
+  padding: 10px;
+}
+.rbq-p-15 {
+  padding: 15px;
+}
+
+/* === 圆角辅助 === */
+.rbq-rounded-0 {
+  border-radius: 0;
+}
+.rbq-rounded-4 {
+  border-radius: 4px;
+}
+.rbq-rounded-8 {
+  border-radius: 8px;
+}
+.rbq-rounded-12 {
+  border-radius: 12px;
+}
+.rbq-rounded-full {
+  border-radius: 9999px;
+}
+
+/* === 阴影辅助 === */
+.rbq-shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.rbq-shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.rbq-shadow-lg {
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* === 文字颜色辅助 === */
+.rbq-text-primary {
+  color: var(--phone-primary-color);
+}
+.rbq-text-gray {
+  color: #999;
+}
+.rbq-text-muted {
+  color: #ccc;
+}
+
+/* === 背景颜色辅助 === */
+.rbq-bg-light {
+  background-color: #f5f5f5;
+}
+.rbq-bg-lighter {
+  background-color: #f9f9f9;
+}
+
+/* === 边框辅助 === */
+.rbq-border {
+  border: 1px solid #e0e0e0;
+}
+.rbq-border-t {
+  border-top: 1px solid #e0e0e0;
+}
+.rbq-border-b {
+  border-bottom: 1px solid #e0e0e0;
+}
+.rbq-border-l {
+  border-left: 1px solid #e0e0e0;
+}
+.rbq-border-r {
+  border-right: 1px solid #e0e0e0;
+}
