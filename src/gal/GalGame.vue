@@ -1610,8 +1610,34 @@ onMounted(() => {
       if (messages && messages.length > 0) {
         const lastMessage = messages[0];
         if (lastMessage && lastMessage.message) {
-          console.log('开始处理消息:', lastMessage.message);
-          handleMessage(lastMessage.message);
+          console.log('原始消息:', lastMessage.message);
+
+          let messageContent = lastMessage.message;
+
+          // 提取 <gal_inface> 标签内的内容（避免触发酒馆中针对该标签的正则替换）
+          const galInterfaceMatch = messageContent.match(/<gal_inface>([\s\S]*?)<\/gal_inface>/);
+          if (galInterfaceMatch) {
+            messageContent = galInterfaceMatch[1].trim();
+            console.log('提取 gal_inface 内容:', messageContent);
+          }
+
+          // 步骤 1: 替换宏（{{user}}, {{char}} 等）
+          let processedMessage = substitudeMacros(messageContent);
+          console.log('宏替换后:', processedMessage);
+
+          // 步骤 2: 应用用户自定义正则（去掉"一丝"等）
+          processedMessage = formatAsTavernRegexedString(
+            processedMessage,
+            'ai_output',  // 消息来源类型（AI输出）
+            'display',    // 目标用途（用于显示）
+            {
+              depth: 0,   // 当前消息深度为0
+              character_name: substitudeMacros('{{char}}')  // 当前角色名
+            }
+          );
+          console.log('正则处理后:', processedMessage);
+
+          handleMessage(processedMessage);
         }
       }
     }

@@ -189,40 +189,48 @@ watch(
 </script>
 
 <template>
-  <!-- 底部触发热区：鼠标移到屏幕底部时触发菜单显示 -->
-  <div v-if="!isLocked" class="menu-trigger-zone" @mouseenter="handleMouseEnter"></div>
+  <div class="bottom-menu-wrapper">
+    <!-- 底部触发热区：鼠标移到屏幕底部时触发菜单显示 -->
+    <div v-if="!isLocked" class="menu-trigger-zone" @mouseenter="handleMouseEnter"></div>
 
-  <div ref="menuElement" class="bottom-menu" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
-    <!-- 左侧信息区域 -->
-    <div class="info-section">
-      <div class="info-icon"></div>
-      <div class="description-text">{{ currentDescription }}</div>
-    </div>
+    <div ref="menuElement" class="bottom-menu" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+      <!-- 左侧信息区域 -->
+      <div class="info-section">
+        <div class="info-icon"></div>
+        <div class="description-text">{{ currentDescription }}</div>
+      </div>
 
-    <!-- 右侧功能图标组 -->
-    <div class="icons-section">
-      <div
-        v-for="icon in menuIcons"
-        :key="icon.name"
-        class="menu-icon"
-        :class="[
-          `icon-${icon.name}`,
-          icon.name === 'lock' ? (isLocked ? 'locked' : 'unlocked') : '',
-          icon.name === 'auto' && isAutoPlaying ? 'auto-active' : '',
-        ]"
-        :style="{
-          backgroundImage: `url(${icon.url})`,
-          width: `${icon.width}px`,
-        }"
-        @mouseenter="showDescription(icon.desc)"
-        @mouseleave="hideDescription"
-        @click="handleIconClick(icon.name)"
-      ></div>
+      <!-- 右侧功能图标组 -->
+      <div class="icons-section">
+        <div
+          v-for="icon in menuIcons"
+          :key="icon.name"
+          class="menu-icon"
+          :class="[
+            `icon-${icon.name}`,
+            icon.name === 'lock' ? (isLocked ? 'locked' : 'unlocked') : '',
+            icon.name === 'auto' && isAutoPlaying ? 'auto-active' : '',
+          ]"
+          :style="{
+            backgroundImage: `url(${icon.url})`,
+            width: `${icon.width}px`,
+          }"
+          @mouseenter="showDescription(icon.desc)"
+          @mouseleave="hideDescription"
+          @click="handleIconClick(icon.name)"
+        ></div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
+// 包裹容器：不影响子元素的布局
+.bottom-menu-wrapper {
+  // 使用 contents 让容器"消失"，子元素直接继承父级上下文
+  display: contents;
+}
+
 // 底部触发热区：固定在屏幕最底部，用于触发菜单显示
 .menu-trigger-zone {
   position: fixed;
