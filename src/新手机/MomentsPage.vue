@@ -155,24 +155,82 @@ function handlePublishBack() {
   currentView.value = 'list';
 }
 
-function handleMomentPublish(content: string) {
-  // 发布成功后返回列表页面
+async function handleMomentPublish(content: string) {
+  // 1. 先在前端显示动态
+  await addUserMomentToFrontend(content);
+
+  // 2. 返回列表页面
   currentView.value = 'list';
 
-  // 将发布的内容发送到酒馆
+  // 3. 将发布的内容发送到酒馆
   publishMomentToTavern(content);
+}
+
+// 将用户动态添加到前端和MVU数据
+async function addUserMomentToFrontend(content: string) {
+  try {
+    if (typeof Mvu === 'undefined') {
+      console.warn('[MomentsPage] Mvu 未定义，无法保存动态到前端');
+      return;
+    }
+
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    // 确保用户数据存在，并正确设置用户昵称
+    if (!phoneData.用户) {
+      phoneData.用户 = {
+        昵称: props.userInfo?.name || '我的账号',
+        头像: props.userInfo?.avatar || '',
+        空间动态: []
+      };
+    } else {
+      // 如果用户数据存在但昵称为空，更新昵称
+      if (!phoneData.用户.昵称 && props.userInfo?.name) {
+        phoneData.用户.昵称 = props.userInfo.name;
+      }
+      // 确保头像也是最新的
+      if (!phoneData.用户.头像 && props.userInfo?.avatar) {
+        phoneData.用户.头像 = props.userInfo.avatar;
+      }
+    }
+
+    if (!phoneData.用户.空间动态) {
+      phoneData.用户.空间动态 = [];
+    }
+
+    // 创建新动态对象
+    const timestamp = Date.now();
+    const newMoment = {
+      时间: new Date(timestamp).toISOString(),
+      内容: content,
+      评论列表: []
+    };
+
+    // 添加到用户动态列表开头（最新的在前面）
+    phoneData.用户.空间动态.unshift(newMoment);
+
+    // 保存到MVU数据
+    Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
+    await Mvu.replaceMvuData(mvuData, { type: 'chat' });
+
+    console.log('[MomentsPage] 动态已添加到前端:', newMoment);
+  } catch (error) {
+    console.error('[MomentsPage] 添加动态到前端失败:', error);
+  }
 }
 
 // 将动态发布到酒馆的函数
 function publishMomentToTavern(content: string) {
   try {
-    // 加工动态格式，添加标识符
-    const processedMoment = `[手机系统：发布动态-"${content}"]`;
+    // 使用固定格式 [AZ中发布动态-"${动态}"]
+    const processedMoment = `[AZ中发布动态-"${content}"]`;
+
+    console.log('[MomentsPage] 发布动态:', processedMoment);
 
     // 将动态填入酒馆输入框
     fillMomentToTavernInput(processedMoment);
 
-    console.log('发布动态:', processedMoment);
     toastr.success('动态已发送到酒馆', '成功');
 
   } catch (error) {
