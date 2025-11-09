@@ -72,6 +72,10 @@
           >
             <div class="mimi-avatar-wrapper">
               <img :src="message?.avatar || ''" alt="avatar" />
+              <!-- 小红点 - 未读消息数量 -->
+              <div v-show="message?.unreadCount && message.unreadCount > 0" class="mimi-unread-badge">
+                {{ message.unreadCount }}
+              </div>
             </div>
             <div class="mimi-message-details">
               <div class="mimi-message-top">
@@ -273,6 +277,10 @@ const messageInput = ref('');
 const userAvatarLocal = ref<string>('');
 const messagesContainer = ref<HTMLElement | null>(null);
 
+// 未读消息数量管理
+const unreadCounts = ref<Record<string, number>>({});
+const LAST_VIEW_TIMES_KEY = 'mimi-chat-last-view-times';
+
 // 优先使用从 Phone.vue 传递的用户头像
 const userAvatar = computed(() => props.userAvatar || userAvatarLocal.value);
 
@@ -420,6 +428,7 @@ const filteredMessages = computed(() => {
         avatar: contact.头像,
         time: formatTimestamp(validTimestamp, now),
         pinned: false, // Add pinned property with default value
+        unreadCount: unreadCounts.value[key] || 0, // 未读消息数量
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item))
@@ -550,6 +559,10 @@ function scrollToBottom(immediate = false) {
 function openConversation(contactName: string) {
   activeContactName.value = contactName;
   currentView.value = 'conversation';
+
+  // 清除未读数量
+  clearUnreadCount(contactName);
+
   // 切换到对话界面后重置滚动位置，然后立即滚动到底部
   nextTick(() => {
     resetScrollPosition();
@@ -762,9 +775,66 @@ function loadContactsData(contactsDataParam: Record<string, any>) {
   contactsData.value = formattedContacts;
 }
 
+// 计算未读消息数量
+function calculateUnreadCounts() {
+  try {
+    // 从 localStorage 读取最后查看时间
+    const lastViewTimesJson = localStorage.getItem(LAST_VIEW_TIMES_KEY);
+    const lastViewTimes: Record<string, number> = lastViewTimesJson
+      ? JSON.parse(lastViewTimesJson)
+      : {};
+
+    const newUnreadCounts: Record<string, number> = {};
+
+    // 遍历每个联系人
+    Object.entries(contactsData.value).forEach(([contactName, contact]) => {
+      const lastViewTime = lastViewTimes[contactName] || 0;
+      let unreadCount = 0;
+
+      // 统计在最后查看时间之后的非用户消息
+      Object.entries(contact.聊天记录).forEach(([timestampStr, message]) => {
+        const messageTime = new Date(timestampStr).getTime();
+
+        // 如果消息时间晚于最后查看时间，且不是用户发送的消息
+        if (messageTime > lastViewTime && !message.is_user) {
+          unreadCount++;
+        }
+      });
+
+      newUnreadCounts[contactName] = unreadCount;
+    });
+
+    unreadCounts.value = newUnreadCounts;
+    console.log('[ChatPage] 未读消息数量已更新:', unreadCounts.value);
+  } catch (error) {
+    console.error('[ChatPage] 计算未读消息数量失败:', error);
+  }
+}
+
+// 清除未读数量并更新最后查看时间
+function clearUnreadCount(contactName: string) {
+  try {
+    const lastViewTimesJson = localStorage.getItem(LAST_VIEW_TIMES_KEY);
+    const lastViewTimes: Record<string, number> = lastViewTimesJson
+      ? JSON.parse(lastViewTimesJson)
+      : {};
+
+    // 记录当前时间为最后查看时间
+    lastViewTimes[contactName] = Date.now();
+    localStorage.setItem(LAST_VIEW_TIMES_KEY, JSON.stringify(lastViewTimes));
+
+    // 清除未读数量
+    unreadCounts.value[contactName] = 0;
+
+    console.log(`[ChatPage] 已清除 ${contactName} 的未读消息数量`);
+  } catch (error) {
+    console.error('[ChatPage] 清除未读数量失败:', error);
+  }
+}
+
 // 用户信息计算属性
 const userInfo = computed(() => ({
-  name: userData.value.昵称 || '',
+  name: userData.value.昵称 || props.userName || '',
   avatar: userAvatar.value,
 }));
 
@@ -920,14 +990,22 @@ const loadTavernData = async () => {
         contacts_names: phoneData?.联系人 ? Object.keys(phoneData.联系人) : [],
       });
 
-      // 加载用户数据
+      // 加载用户数据，确保始终有用户信息
       if (phoneData?.用户) {
         userData.value = {
-          昵称: phoneData.用户.昵称,
-          头像: phoneData.用户.头像 || '',
+          昵称: phoneData.用户.昵称 || props.userName || '我的账号',
+          头像: phoneData.用户.头像 || props.userAvatar || '',
           空间动态: phoneData.用户.空间动态 || [],
         };
         console.log('[ChatPage] 用户数据已更新:', userData.value.昵称);
+      } else {
+        // 如果没有用户数据，使用传入的props初始化
+        userData.value = {
+          昵称: props.userName || '我的账号',
+          头像: props.userAvatar || '',
+          空间动态: [],
+        };
+        console.log('[ChatPage] 用户数据初始化（无MVU数据）:', userData.value.昵称);
       }
 
       if (phoneData?.联系人) {
@@ -937,6 +1015,9 @@ const loadTavernData = async () => {
         loadContactsData(phoneData.联系人);
 
         console.log('[ChatPage] 联系人数据加载完成，当前联系人数:', Object.keys(contactsData.value).length);
+
+        // 计算未读消息数量
+        calculateUnreadCounts();
 
         // 如果当前在对话页面，自动滚动到底部以显示新消息
         if (currentView.value === 'conversation' && !isScrolling.value) {
@@ -1387,6 +1468,28 @@ onMounted(() => {
   border: 1px solid #e5e5e8;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
+}
+
+/* 小红点样式 */
+.mimi-unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ff3b30;
+  color: white;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 4px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  line-height: 1;
+  z-index: 1;
 }
 
 .mimi-message-details {
