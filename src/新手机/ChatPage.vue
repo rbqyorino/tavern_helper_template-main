@@ -11,7 +11,7 @@
           <img :src="userAvatar || ''" alt="Avatar" @error="handleAvatarError" />
         </div>
         <div class="mimi-profile-info">
-          <span class="mimi-profile-name">{{ userData.昵称 || '我的账号' }}</span>
+          <span class="mimi-profile-name">{{ displayUserName }}</span>
           <span class="mimi-profile-status">
             <span class="mimi-status-dot"></span>
             在线
@@ -136,6 +136,7 @@
             class="mimi-conversation-message"
             :class="{ 'mimi-message--user': message.is_user }"
           >
+            <!-- 对方头像（左边） -->
             <div v-if="!message.is_user" class="mimi-message-avatar">
               <img :src="activeContact?.头像 || ''" alt="avatar" />
             </div>
@@ -146,6 +147,10 @@
               <div class="mimi-message-time">
                 {{ formatMessageTime(message.timestamp) }}
               </div>
+            </div>
+            <!-- 用户头像（右边） -->
+            <div v-if="message.is_user" class="mimi-message-avatar mimi-message-avatar--user">
+              <img :src="userAvatar || ''" alt="我的头像" @error="handleAvatarError" />
             </div>
           </div>
         </div>
@@ -237,6 +242,8 @@ import { resolveAvatar, convertAvatarToThumbnail } from './utils/avatar';
 // 定义 props
 const props = defineProps<{
   currentTime: number;
+  userName?: string;
+  userAvatar?: string;
 }>();
 
 // 定义发射事件
@@ -263,8 +270,11 @@ const currentView = ref<'messages' | 'conversation' | 'moments' | 'contacts'>('m
 const activeTab = ref<'messages' | 'contacts' | 'moments'>('messages');
 const activeContactName = ref<string>('');
 const messageInput = ref('');
-const userAvatar = ref<string>('');
+const userAvatarLocal = ref<string>('');
 const messagesContainer = ref<HTMLElement | null>(null);
+
+// 优先使用从 Phone.vue 传递的用户头像
+const userAvatar = computed(() => props.userAvatar || userAvatarLocal.value);
 
 // 防抖相关变量
 let scrollTimeout: number | null = null;
@@ -324,6 +334,9 @@ const userData = ref<{
   头像?: string;
   空间动态?: any[];
 }>({});
+
+// 优先使用从 Phone.vue 传递的用户名
+const displayUserName = computed(() => props.userName || userData.value.昵称 || '我的账号');
 
 // 计算属性
 const activeContact = computed(() => {
@@ -565,17 +578,85 @@ function goBackFromMoments() {
   activeTab.value = 'messages';
 }
 
-function sendMessage() {
+async function sendMessage() {
   if (!messageInput.value.trim() || !activeContactName.value) return;
 
-  // 加工消息格式，添加角色名前缀
-  const processedMessage = `[手机系统：对${activeContact.value?.昵称 || activeContactName.value}发送消息-"${messageInput.value}"]`;
+  const messageText = messageInput.value.trim();
+  const contactName = activeContact.value?.昵称 || activeContactName.value;
 
-  // 将消息填入酒馆输入框
-  fillMessageToTavernInput(processedMessage);
+  try {
+    // 1. 先在前端显示消息
+    const timestamp = Date.now();
+    const timestampKey = new Date(timestamp).toISOString();
 
-  console.log('发送消息:', processedMessage);
-  messageInput.value = '';
+    // 确保联系人数据存在
+    if (!contactsData.value[activeContactName.value]) {
+      console.warn('[ChatPage] 联系人数据不存在:', activeContactName.value);
+      return;
+    }
+
+    // 添加消息到前端显示
+    contactsData.value[activeContactName.value].聊天记录[timestampKey] = {
+      is_user: true,
+      message: messageText,
+    };
+
+    // 2. 将消息存入 MVU 数据
+    await addMessageToMvuData(activeContactName.value, timestampKey, messageText);
+
+    // 3. 加工消息格式并填入酒馆输入框
+    const processedMessage = `[AZ中给${contactName}发送了消息：${messageText}]`;
+    fillMessageToTavernInput(processedMessage);
+
+    console.log('[ChatPage] 发送消息:', processedMessage);
+
+    // 4. 清空输入框
+    messageInput.value = '';
+
+    // 5. 滚动到底部
+    nextTick(() => {
+      scrollToBottom();
+    });
+  } catch (error) {
+    console.error('[ChatPage] 发送消息失败:', error);
+    toastr.error('发送消息失败', '错误');
+  }
+}
+
+// 将消息添加到 MVU 数据
+async function addMessageToMvuData(contactName: string, timestampKey: string, message: string) {
+  try {
+    if (typeof Mvu === 'undefined') {
+      console.warn('[ChatPage] Mvu 未定义，无法保存消息到 MVU 数据');
+      return;
+    }
+
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    if (!phoneData?.联系人?.[contactName]) {
+      console.warn('[ChatPage] MVU 数据中不存在该联系人:', contactName);
+      return;
+    }
+
+    // 添加消息到 MVU 数据
+    if (!phoneData.联系人[contactName].聊天记录) {
+      phoneData.联系人[contactName].聊天记录 = {};
+    }
+
+    phoneData.联系人[contactName].聊天记录[timestampKey] = {
+      is_user: true,
+      message: message,
+    };
+
+    // 更新 MVU 数据
+    Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
+    await Mvu.replaceMvuData(mvuData, { type: 'chat' });
+
+    console.log('[ChatPage] 消息已保存到 MVU 数据');
+  } catch (error) {
+    console.error('[ChatPage] 保存消息到 MVU 数据失败:', error);
+  }
 }
 
 // 将消息填入酒馆输入框的函数
@@ -1035,7 +1116,7 @@ onMounted(() => {
         }
 
         if (avatarSrc) {
-          userAvatar.value = avatarSrc;
+          userAvatarLocal.value = avatarSrc;
         }
       } catch (error) {
         console.warn('[ChatPage] 获取用户头像失败:', error);
@@ -1487,7 +1568,6 @@ onMounted(() => {
 
 .mimi-message--user {
   align-self: flex-end;
-  flex-direction: row-reverse;
 }
 
 .mimi-message-avatar {

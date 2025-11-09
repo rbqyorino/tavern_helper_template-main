@@ -100,7 +100,14 @@
             </div>
 
             <!-- Chat Page -->
-            <ChatPage v-show="currentView === 'chat'" ref="chatPageRef" :current-time="currentTime" @go-home="goHome" />
+            <ChatPage
+              v-show="currentView === 'chat'"
+              ref="chatPageRef"
+              :current-time="currentTime"
+              :user-name="userName"
+              :user-avatar="userAvatar"
+              @go-home="goHome"
+            />
           </div>
         </div>
       </div>
@@ -112,12 +119,17 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import ChatPage from './ChatPage.vue';
 import DraggableWrapper from './DraggableWrapper.vue';
+import { convertAvatarToThumbnail } from './utils/avatar';
 
 const visible = ref(false);
 const currentTime = ref(Date.now());
 const currentView = ref<'home' | 'chat'>('home');
 const chatPageRef = ref<InstanceType<typeof ChatPage> | null>(null);
 const hasLoadedTavernData = ref(false);
+
+// 用户信息
+const userName = ref('');
+const userAvatar = ref('');
 
 // 拖动功能
 const DEFAULT_MARGIN = 20;
@@ -170,7 +182,7 @@ function handleDragStop(rect: { left: number; top: number; width: number; height
   );
 }
 
-onMounted(() => {
+onMounted(async () => {
   const savedPosition = localStorage.getItem('mimi-phone-position');
   let initial = getInitialPosition();
 
@@ -187,6 +199,25 @@ onMounted(() => {
   }
 
   applyPosition(initial);
+
+  // 获取酒馆用户信息
+  try {
+    // 获取用户名
+    const name = await triggerSlash('/pass {{user}}');
+    if (name && name !== 'undefined') {
+      userName.value = name;
+      console.log('[Phone] 获取到用户名:', name);
+    }
+
+    // 获取用户头像
+    const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
+    if (avatarPath && avatarPath !== 'undefined') {
+      userAvatar.value = convertAvatarToThumbnail(avatarPath);
+      console.log('[Phone] 获取到用户头像:', avatarPath);
+    }
+  } catch (error) {
+    console.warn('[Phone] 获取用户信息失败:', error);
+  }
 });
 
 const showPhone = async () => {
