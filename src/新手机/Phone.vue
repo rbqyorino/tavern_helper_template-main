@@ -255,8 +255,8 @@ onMounted(async () => {
 });
 
 const showPhone = async () => {
-  // 如果屏幕高度小于400px，强制使用居中位置
-  if (window.innerHeight < 400) {
+  // 如果用户设置的手机高度小于400px，强制使用居中位置
+  if (phoneSettings.value.phoneHeight < 400) {
     const centeredPosition = getInitialPosition();
     applyPosition(centeredPosition);
   }
@@ -288,9 +288,12 @@ defineExpose({
 
 let cleanup: (() => void) | null = null;
 
-onMounted(() => {
-  // 启动时间监听器
-  cleanup = setupTimeListener();
+onMounted(async () => {
+  // 启动时间监听器（setupTimeListener 为 async，返回清理函数）
+  const disposer = await setupTimeListener();
+  if (typeof disposer === 'function') {
+    cleanup = disposer;
+  }
 
   // 初始化时间，如果没有酒馆数据则使用系统时间
   if (!hasLoadedTavernData.value) {
@@ -300,7 +303,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   // 在组件卸载时清理所有资源
-  cleanup?.();
+  if (typeof cleanup === 'function') {
+    cleanup();
+  }
 });
 
 const currentTimeText = computed(() => {
@@ -663,6 +668,9 @@ const loadTimeFromTavern = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
+  width: 100%;           /* 明确限定在屏幕内部宽度 */
+  max-width: 100%;
+  box-sizing: border-box;
   font-size: 14px;
   font-weight: 600;
   cursor: grab;
