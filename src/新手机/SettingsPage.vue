@@ -241,8 +241,11 @@ function resetSettings() {
   position: relative;
   display: flex;
   flex-direction: column;
+  /* 强制让设置页只占满手机屏幕内部，而不是按内容自撑 */
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   background: linear-gradient(
     180deg,
     rgba(246, 248, 255, 0.82) 0%,
@@ -258,7 +261,8 @@ function resetSettings() {
   display: flex;
   align-items: center;
   background: transparent;
-  padding: clamp(2px, 0vw, 16px) clamp(12px, 3vw, 18px);
+  /* 与主界面保持一致的水平内边距体系，避免内容宽度偏差 */
+  padding: clamp(2px, 0vw, 16px) clamp(12px, 4vw, 22px);
   border-bottom: none;
 }
 
@@ -302,9 +306,12 @@ function resetSettings() {
 .mimi-settings-content {
   flex: 1;
   min-height: 0;
+  /* 与主页 .mimi-home-page 使用同一水平 padding 逻辑，以确保内容宽度一致 */
+  padding: clamp(16px, 5vw, 32px) clamp(12px, 4vw, 22px) clamp(24px, 6vw, 42px);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 
   // 自定义滚动条
   &::-webkit-scrollbar {
@@ -327,7 +334,11 @@ function resetSettings() {
 }
 
 .mimi-settings-section {
-  margin-bottom: clamp(20px, 5vw, 28px);
+  /* 按行堆叠，不能横向撑开 */
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 clamp(20px, 5vw, 28px) 0;
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -346,6 +357,9 @@ function resetSettings() {
   flex-direction: column;
   gap: clamp(10px, 2.5vw, 14px);
   padding: clamp(12px, 3vw, 18px);
+  margin: 0; /* 禁止额外外边距撑宽整体 */
+  width: 100%;
+  max-width: 100%;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(238, 242, 255, 0.85) 100%);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -353,6 +367,7 @@ function resetSettings() {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.5),
     0 12px 32px rgba(90, 104, 149, 0.15);
+  box-sizing: border-box; /* 与外层统一使用 box-sizing，防止内部计算偏差 */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
@@ -375,6 +390,8 @@ function resetSettings() {
   display: flex;
   align-items: center;
   gap: clamp(10px, 2.5vw, 14px);
+  width: 100%;   /* 跟随父容器宽度 */
+  box-sizing: border-box;
 
   &--full {
     flex-direction: column;
@@ -389,6 +406,7 @@ function resetSettings() {
   color: rgba(32, 36, 50, 0.7);
   flex-shrink: 0;
   letter-spacing: 0.2px;
+  box-sizing: border-box;
 }
 
 .mimi-settings-input {
@@ -404,6 +422,7 @@ function resetSettings() {
   -webkit-backdrop-filter: blur(8px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(90, 104, 149, 0.08);
+  box-sizing: border-box;
 
   &:hover {
     border-color: rgba(91, 134, 229, 0.4);
@@ -478,6 +497,9 @@ function resetSettings() {
   flex-direction: column;
   gap: clamp(10px, 2.5vw, 12px);
   padding: clamp(14px, 3.5vw, 16px);
+  margin: 0; /* 不额外扩展宽度 */
+  width: 100%;
+  max-width: 100%;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(238, 242, 255, 0.75) 100%);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -485,6 +507,7 @@ function resetSettings() {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
     0 4px 16px rgba(90, 104, 149, 0.1);
+  box-sizing: border-box;
 }
 
 .mimi-preview-message {
@@ -506,11 +529,13 @@ function resetSettings() {
   line-height: 1.4;
   word-wrap: break-word;
   box-shadow: 0 4px 12px rgba(90, 104, 149, 0.15);
+  box-sizing: border-box;
 }
 
 .mimi-settings-footer {
   flex-shrink: 0;
   display: flex;
+  /* 与主页底部区域保持同一水平 padding 规则 */
   padding: clamp(16px, 4vw, 20px) clamp(12px, 4vw, 22px) clamp(20px, 5vw, 24px);
   border-top: none;
   background: transparent;
@@ -548,14 +573,15 @@ function resetSettings() {
   }
 }
 
-// 小宽度适配
+ // 小宽度适配
 @media (max-width: 350px) {
   .mimi-settings-header {
     padding: clamp(6px, 1.5vw, 10px) clamp(6px, 1.5vw, 10px);
   }
 
+  /* 让小屏时的左右 padding 与主页保持同一套 clamp 逻辑，避免内容更宽 */
   .mimi-settings-content {
-    padding: clamp(6px, 1.5vw, 10px) clamp(6px, 1.5vw, 10px) clamp(16px, 4vw, 20px);
+    padding: clamp(6px, 1.5vw, 10px) clamp(12px, 4vw, 22px) clamp(16px, 4vw, 20px);
   }
 
   .mimi-settings-section {
