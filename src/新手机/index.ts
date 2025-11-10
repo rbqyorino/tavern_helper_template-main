@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import Phone from './Phone.vue';
 
 export function teleport_style() {
@@ -28,6 +29,8 @@ $(() => {
     teleport_style();
 
     const phoneApp = createApp(Phone);
+    const pinia = createPinia();
+    phoneApp.use(pinia);
     const phoneInstance = phoneApp.mount($appContainer[0]) as any;
 
     (window as any).mimiPhoneInstance = phoneInstance;

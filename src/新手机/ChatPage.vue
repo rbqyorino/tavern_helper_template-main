@@ -145,7 +145,22 @@
               <img :src="activeContact?.头像 || ''" alt="avatar" />
             </div>
             <div class="mimi-message-content">
-              <div class="mimi-message-bubble">
+              <div
+                class="mimi-message-bubble"
+                :style="
+                  message.is_user
+                    ? {
+                        backgroundColor: playerBubbleColor || '#007aff',
+                        color: playerTextColor || '#ffffff',
+                        fontSize: (playerFontSize || 14) + 'px',
+                      }
+                    : {
+                        backgroundColor: characterBubbleColor || '#ffffff',
+                        color: characterTextColor || '#000000',
+                        fontSize: (characterFontSize || 14) + 'px',
+                      }
+                "
+              >
                 {{ message.message }}
               </div>
               <div class="mimi-message-time">
@@ -248,6 +263,12 @@ const props = defineProps<{
   currentTime: number;
   userName?: string;
   userAvatar?: string;
+  playerBubbleColor?: string;
+  playerTextColor?: string;
+  playerFontSize?: number;
+  characterBubbleColor?: string;
+  characterTextColor?: string;
+  characterFontSize?: number;
 }>();
 
 // 定义发射事件
