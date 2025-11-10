@@ -125,49 +125,6 @@
         </div>
       </section>
 
-      <!-- 主题设置 -->
-      <section class="mimi-settings-section">
-        <h2 class="mimi-settings-section-title">主题</h2>
-        <div class="mimi-settings-group">
-          <div class="mimi-settings-item mimi-settings-item--full">
-            <label class="mimi-settings-label">外观</label>
-            <div class="mimi-theme-toggle">
-              <button
-                :class="['mimi-theme-option', { active: settings.theme === 'light' }]"
-                @click="settings.theme = 'light'"
-              >
-                <svg viewBox="0 0 24 24" width="20" height="20">
-                  <circle cx="12" cy="12" r="5" fill="currentColor" />
-                  <path
-                    d="M12 1v3m0 16v3M4.22 4.22l2.12 2.12m11.32 11.32l2.12 2.12M1 12h3m16 0h3M4.22 19.78l2.12-2.12m11.32-11.32l2.12-2.12"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                </svg>
-                <span>浅色</span>
-              </button>
-              <button
-                :class="['mimi-theme-option', { active: settings.theme === 'dark' }]"
-                @click="settings.theme = 'dark'"
-              >
-                <svg viewBox="0 0 24 24" width="20" height="20">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" />
-                </svg>
-                <span>深色</span>
-              </button>
-            </div>
-          </div>
-          <div class="mimi-settings-item">
-            <label class="mimi-settings-label">浅色背景</label>
-            <ColorPicker v-model="settings.lightBg" />
-          </div>
-          <div class="mimi-settings-item">
-            <label class="mimi-settings-label">深色背景</label>
-            <ColorPicker v-model="settings.darkBg" />
-          </div>
-        </div>
-      </section>
     </main>
 
     <!-- Footer -->
@@ -440,55 +397,6 @@ function resetSettings() {
 
   &::placeholder {
     color: rgba(32, 36, 50, 0.35);
-  }
-}
-
-.mimi-theme-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(10px, 2.5vw, 12px);
-  margin-top: clamp(6px, 1.5vw, 8px);
-}
-
-.mimi-theme-option {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 1.5vw, 8px);
-  padding: clamp(10px, 2.5vw, 12px);
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  border-radius: clamp(10px, 2.5vw, 12px);
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: rgba(32, 36, 50, 0.7);
-  font-size: clamp(12px, 3vw, 13px);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(90, 104, 149, 0.08);
-
-  &:hover {
-    border-color: rgba(91, 134, 229, 0.5);
-    background: rgba(255, 255, 255, 0.7);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(90, 104, 149, 0.15);
-  }
-
-  &:active {
-    transform: scale(0.97);
-  }
-
-  &.active {
-    border-color: rgba(91, 134, 229, 0.8);
-    background: linear-gradient(140deg, #5b86e5 0%, #36d1dc 100%);
-    color: #ffffff;
-    box-shadow: 0 6px 20px rgba(91, 134, 229, 0.35);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(91, 134, 229, 0.4);
-    }
   }
 }
 

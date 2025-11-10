@@ -6,7 +6,6 @@ const STORAGE_KEY = 'mimi-phone-settings';
 export interface PhoneSettings {
   phoneWidth: number;
   phoneHeight: number;
-  theme: 'light' | 'dark';
   player: {
     bubbleColor: string;
     textColor: string;
@@ -17,14 +16,11 @@ export interface PhoneSettings {
     textColor: string;
     fontSize: number;
   };
-  lightBg: string;
-  darkBg: string;
 }
 
 const defaultSettings: PhoneSettings = {
   phoneWidth: 375,
   phoneHeight: 812,
-  theme: 'light',
   player: {
     bubbleColor: '#95C8FF',
     textColor: '#000000',
@@ -35,8 +31,6 @@ const defaultSettings: PhoneSettings = {
     textColor: '#000000',
     fontSize: 14,
   },
-  lightBg: '#F6F7FF',
-  darkBg: '#1C1C1E',
 };
 
 export const usePhoneSettingsStore = defineStore('phoneSettings', () => {
