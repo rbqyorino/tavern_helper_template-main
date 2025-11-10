@@ -6,10 +6,11 @@
     :z="1000"
     drag-handle="mimi-phone-drag-handle"
     class="mimi-phone-wrapper"
+    :style="phoneWrapperStyle"
     @dragging="handleDrag"
     @dragstop="handleDragStop"
   >
-    <div class="mimi-phone-container">
+    <div class="mimi-phone-container" :style="phoneContainerStyle">
       <div class="mimi-phone-frame">
         <div class="mimi-phone-notch">
           <span class="mimi-phone-notch__speaker"></span>
@@ -33,7 +34,7 @@
             </div>
           </div>
 
-          <div class="mimi-phone-screen">
+          <div class="mimi-phone-screen" :style="phoneScreenStyle">
             <!-- Home Page -->
             <div v-show="currentView === 'home'" class="mimi-home-page">
               <header class="mimi-home-header">
@@ -106,8 +107,17 @@
               :current-time="currentTime"
               :user-name="userName"
               :user-avatar="userAvatar"
+              :player-bubble-color="phoneSettings.player.bubbleColor"
+              :player-text-color="phoneSettings.player.textColor"
+              :player-font-size="phoneSettings.player.fontSize"
+              :character-bubble-color="phoneSettings.character.bubbleColor"
+              :character-text-color="phoneSettings.character.textColor"
+              :character-font-size="phoneSettings.character.fontSize"
               @go-home="goHome"
             />
+
+            <!-- Settings Page -->
+            <SettingsPage v-show="currentView === 'settings'" @close="goHome" />
           </div>
         </div>
       </div>
@@ -118,18 +128,24 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import ChatPage from './ChatPage.vue';
+import SettingsPage from './SettingsPage.vue';
 import DraggableWrapper from './DraggableWrapper.vue';
 import { convertAvatarToThumbnail } from './utils/avatar';
+import { usePhoneSettingsStore } from './stores/phoneSettings';
 
 const visible = ref(false);
 const currentTime = ref(Date.now());
-const currentView = ref<'home' | 'chat'>('home');
+const currentView = ref<'home' | 'chat' | 'settings'>('home');
 const chatPageRef = ref<InstanceType<typeof ChatPage> | null>(null);
 const hasLoadedTavernData = ref(false);
 
 // 用户信息
 const userName = ref('');
 const userAvatar = ref('');
+
+// 使用 Pinia store 管理手机设置
+const settingsStore = usePhoneSettingsStore();
+const phoneSettings = computed(() => settingsStore.settings);
 
 // 拖动功能
 const DEFAULT_MARGIN = 20;
@@ -147,17 +163,35 @@ const TAP_TIMEOUT = 300; // 双击间隔时间（毫秒）
 function getInitialPosition() {
   const width = getEffectivePhoneWidth();
   const viewportWidth = window.innerWidth || width;
+  const viewportHeight = window.innerHeight;
+
+  // 计算手机高度（基于宽高比）
+  const aspectRatio = phoneSettings.value.phoneHeight / phoneSettings.value.phoneWidth;
+  const height = width * aspectRatio;
+
+  // 水平和垂直都居中
   const left = Math.max(DEFAULT_MARGIN, (viewportWidth - width) / 2);
-  const top = DEFAULT_MARGIN;
+  const top = Math.max(DEFAULT_MARGIN, (viewportHeight - height) / 2);
+
   return { left, top };
 }
 
 function getEffectivePhoneWidth(): number {
   const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
   const minGap = DEFAULT_MARGIN * 2;
-  // 限制最大宽度为屏幕宽度的90%或390px，取较小值
-  const maxAllowedWidth = Math.min(MAX_PHONE_WIDTH, viewportWidth * 0.9);
-  return Math.min(maxAllowedWidth, Math.max(0, viewportWidth - minGap));
+
+  // 基于宽度的限制
+  const maxWidthByViewportWidth = Math.min(MAX_PHONE_WIDTH, viewportWidth * 0.9);
+  const widthBasedLimit = Math.min(maxWidthByViewportWidth, Math.max(0, viewportWidth - minGap));
+
+  // 基于高度的限制（反推宽度）
+  const aspectRatio = phoneSettings.value.phoneHeight / phoneSettings.value.phoneWidth;
+  const maxHeight = viewportHeight - minGap; // 留40px边距
+  const widthBasedOnHeight = maxHeight / aspectRatio;
+
+  // 取两者中较小值，确保手机完整显示在视口内
+  return Math.min(widthBasedLimit, widthBasedOnHeight);
 }
 
 function applyPosition(next: { left?: number; top?: number }) {
@@ -221,6 +255,12 @@ onMounted(async () => {
 });
 
 const showPhone = async () => {
+  // 如果屏幕高度小于400px，强制使用居中位置
+  if (window.innerHeight < 400) {
+    const centeredPosition = getInitialPosition();
+    applyPosition(centeredPosition);
+  }
+
   visible.value = true;
   // 显示时刷新数据
   refreshChatData();
@@ -278,6 +318,30 @@ const currentDateText = computed(() => {
   return `${month}月${day}日 · ${weekdays[date.getDay()]}`;
 });
 
+// 手机容器样式
+const phoneWrapperStyle = computed(() => ({
+  width: phoneSettings.value.phoneWidth ? `${phoneSettings.value.phoneWidth}px` : 'min(390px, 90vw, calc(100vw - 32px))',
+  maxWidth: phoneSettings.value.phoneWidth ? `${phoneSettings.value.phoneWidth}px` : 'min(390px, 90vw)',
+}));
+
+const phoneContainerStyle = computed(() => {
+  if (phoneSettings.value.phoneWidth && phoneSettings.value.phoneHeight) {
+    // 使用设置的尺寸
+    return {
+      aspectRatio: `${phoneSettings.value.phoneWidth} / ${phoneSettings.value.phoneHeight}`,
+    };
+  }
+  // 使用默认比例
+  return {
+    aspectRatio: '9 / 18.6',
+  };
+});
+
+// 手机屏幕背景样式
+const phoneScreenStyle = computed(() => ({
+  background: phoneSettings.value.theme === 'dark' ? phoneSettings.value.darkBg : phoneSettings.value.lightBg,
+}));
+
 // 状态栏颜色计算
 const statusBarColor = computed(() => {
   switch (currentView.value) {
@@ -285,6 +349,8 @@ const statusBarColor = computed(() => {
       return 'transparent';
     case 'chat':
       return '#ffffff';
+    case 'settings':
+      return '#f8f9fa';
     default:
       return 'transparent';
   }
@@ -296,6 +362,8 @@ const statusBarTextColor = computed(() => {
       return '#202432';
     case 'chat':
       return '#222222';
+    case 'settings':
+      return '#333333';
     default:
       return '#202432';
   }
@@ -364,7 +432,7 @@ function handleStatusBarTouch(event: TouchEvent) {
 }
 
 function goSettings() {
-  toastr.info('设置页面功能暂未完成，敬请期待！', '提示');
+  currentView.value = 'settings';
 }
 
 function handlePhoneClick() {
@@ -468,6 +536,7 @@ const loadTimeFromTavern = async () => {
     currentTime.value = Date.now();
   }
 };
+
 </script>
 
 <style lang="scss">
@@ -642,7 +711,8 @@ const loadTimeFromTavern = async () => {
     rgba(240, 242, 255, 0.92) 60%,
     rgba(229, 233, 255, 0.96) 100%
   );
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .mimi-home-header {
