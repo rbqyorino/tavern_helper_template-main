@@ -257,8 +257,8 @@ function resetSettings() {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: clamp(8px, 2vh, 16px) clamp(12px, 3vw, 18px);
   background: transparent;
+  padding: clamp(2px, 0vw, 16px) clamp(12px, 3vw, 18px);
   border-bottom: none;
 }
 
@@ -266,8 +266,8 @@ function resetSettings() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(32px, 8vw, 36px);
-  height: clamp(32px, 8vw, 36px);
+  width: clamp(24px, 8vw, 36px);
+  height: clamp(24px, 8vw, 36px);
   border: none;
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(10px);
@@ -293,7 +293,7 @@ function resetSettings() {
   flex: 1;
   margin: 0;
   padding-left: clamp(12px, 3vw, 16px);
-  font-size: clamp(18px, 4.5vw, 22px);
+  font-size: clamp(16px, 4.5vw, 22px);
   font-weight: 600;
   color: rgba(32, 36, 50, 0.9);
   letter-spacing: 0.5px;
@@ -551,7 +551,7 @@ function resetSettings() {
 // 小宽度适配
 @media (max-width: 350px) {
   .mimi-settings-header {
-    padding: clamp(6px, 1.5vh, 10px) clamp(6px, 1.5vw, 10px);
+    padding: clamp(6px, 1.5vw, 10px) clamp(6px, 1.5vw, 10px);
   }
 
   .mimi-settings-content {
@@ -585,7 +585,7 @@ function resetSettings() {
 // 极端窄屏适配
 @media (max-width: 280px) {
   .mimi-settings-header {
-    padding: clamp(4px, 1vh, 8px) clamp(4px, 1vw, 6px);
+    padding: clamp(4px, 1vw, 8px) clamp(4px, 1vw, 6px);
   }
 
   .mimi-settings-content {
