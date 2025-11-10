@@ -263,8 +263,6 @@ function resetSettings() {
 .mimi-settings-content {
   flex: 1;
   min-height: 0;
-  /* 与主页 .mimi-home-page 使用同一水平 padding 逻辑，以确保内容宽度一致 */
-  padding: clamp(16px, 5vw, 32px) clamp(12px, 4vw, 22px) clamp(24px, 6vw, 42px);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -313,7 +311,7 @@ function resetSettings() {
   display: flex;
   flex-direction: column;
   gap: clamp(10px, 2.5vw, 14px);
-  padding: clamp(12px, 3vw, 18px);
+  padding: clamp(0px, 0.5vw, 25px);
   margin: 0; /* 禁止额外外边距撑宽整体 */
   width: 100%;
   max-width: 100%;
