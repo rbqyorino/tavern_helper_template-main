@@ -145,6 +145,9 @@
               <img :src="activeContact?.头像 || ''" alt="avatar" />
             </div>
             <div class="mimi-message-content">
+              <div class="mimi-message-time">
+                {{ formatMessageTime(message.timestamp) }}
+              </div>
               <div
                 class="mimi-message-bubble"
                 :style="
@@ -162,9 +165,6 @@
                 "
               >
                 {{ message.message }}
-              </div>
-              <div class="mimi-message-time">
-                {{ formatMessageTime(message.timestamp) }}
               </div>
             </div>
             <!-- 用户头像（右边） -->
