@@ -520,7 +520,7 @@ const loadTimeFromTavern = async () => {
       return;
     }
 
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
     const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
 
     console.log('[Phone] 加载到的时间数据:', phoneData?.当前时间);

@@ -675,7 +675,7 @@ async function addMessageToMvuData(contactName: string, timestampKey: string, me
       return;
     }
 
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
     const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
 
     if (!phoneData?.联系人?.[contactName]) {
@@ -698,7 +698,7 @@ async function addMessageToMvuData(contactName: string, timestampKey: string, me
 
     // 更新 MVU 数据
     Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
-    await Mvu.replaceMvuData(mvuData, { type: 'chat' });
+    await Mvu.replaceMvuData(mvuData, { type: 'message', message_id: 'latest' });
 
     console.log('[ChatPage] 消息已保存到 MVU 数据');
   } catch (error) {
@@ -1014,7 +1014,7 @@ const loadTavernData = async () => {
         return;
       }
 
-      const mvuData = Mvu.getMvuData({ type: 'chat' });
+      const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
       const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
 
       console.log('[ChatPage] 加载到的手机数据:', {

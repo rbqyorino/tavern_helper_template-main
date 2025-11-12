@@ -174,7 +174,7 @@ async function addUserMomentToFrontend(content: string) {
       return;
     }
 
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
     const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
 
     // 确保用户数据存在，并正确设置用户昵称
@@ -212,7 +212,7 @@ async function addUserMomentToFrontend(content: string) {
 
     // 保存到MVU数据
     Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
-    await Mvu.replaceMvuData(mvuData, { type: 'chat' });
+    await Mvu.replaceMvuData(mvuData, { type: 'message', message_id: 'latest' });
 
     console.log('[MomentsPage] 动态已添加到前端:', newMoment);
   } catch (error) {
