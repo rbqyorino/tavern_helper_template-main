@@ -247,6 +247,10 @@
           :class="{ 'mimi-nav-item--active': activeTab === 'moments' }"
           @click="goToMoments"
         >
+          <!-- 未读动态红点 -->
+          <div v-show="unreadMomentsCount > 0" class="mimi-unread-badge mimi-nav-badge">
+            {{ unreadMomentsCount }}
+          </div>
           <svg viewBox="0 0 24 24" class="mimi-nav-icon">
             <path
               fill="currentColor"
@@ -307,7 +311,13 @@ const messagesContainer = ref<HTMLElement | null>(null);
 
 // 未读消息数量管理
 const unreadCounts = ref<Record<string, number>>({});
-const LAST_VIEW_TIMES_KEY = 'mimi-chat-last-view-times';
+// 已读消息数缓存（降级存储，当脚本变量不可用时使用）
+const readCountsCache = ref<Record<string, number>>({});
+
+// 未读动态管理
+const unreadMomentsCount = ref(0);
+// 已读动态数缓存（每个联系人已读的动态数量）
+const readMomentsCache = ref<Record<string, number>>({});
 
 // 优先使用从 Phone.vue 传递的用户头像
 const userAvatar = computed(() => props.userAvatar || userAvatarLocal.value);
@@ -610,8 +620,11 @@ function goBack() {
 }
 
 function goToMoments() {
-  currentView.value = 'moments';
-  loadTavernData();
+  activeTab.value = 'moments';
+  currentView.value = 'messages';
+
+  // 清除未读动态数
+  clearUnreadMomentsCount();
 }
 
 function goBackFromMoments() {
@@ -809,31 +822,179 @@ function loadContactsData(contactsDataParam: Record<string, any>) {
   contactsData.value = formattedContacts;
 }
 
-// 计算未读消息数量
-function calculateUnreadCounts() {
+// 初始化已读计数（首次加载时调用）
+async function initializeReadCounts() {
   try {
-    // 从 localStorage 读取最后查看时间
-    const lastViewTimesJson = localStorage.getItem(LAST_VIEW_TIMES_KEY);
-    const lastViewTimes: Record<string, number> = lastViewTimesJson
-      ? JSON.parse(lastViewTimesJson)
-      : {};
+    console.log('[ChatPage] 开始初始化已读计数');
+
+    // 等待 MVU 初始化
+    if (typeof waitGlobalInitialized === 'function') {
+      await waitGlobalInitialized('Mvu');
+    }
+
+    if (typeof Mvu === 'undefined') {
+      console.warn('[ChatPage] Mvu 未定义，跳过初始化');
+      return;
+    }
+
+    // 获取当前的手机数据
+    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    if (!phoneData?.联系人) {
+      console.warn('[ChatPage] 没有联系人数据，跳过初始化');
+      return;
+    }
+
+    // 检查聊天变量中是否已有已读计数
+    const chatVars = getVariables({ type: 'chat' }) || {};
+
+    // 初始化消息已读计数
+    if (!chatVars.lastReadCounts || Object.keys(chatVars.lastReadCounts).length === 0) {
+      console.log('[ChatPage] 首次初始化消息已读计数');
+      const initialReadCounts: Record<string, number> = {};
+
+      Object.entries(phoneData.联系人).forEach(([contactName, contactInfo]: [string, any]) => {
+        // 将所有现有消息标记为已读（这样首次加载不会显示红点）
+        const messageCount = contactInfo.聊天记录 ? Object.keys(contactInfo.聊天记录).length : 0;
+        initialReadCounts[contactName] = messageCount;
+        console.log(`[ChatPage] 初始化 ${contactName} 已读消息数: ${messageCount}`);
+      });
+
+      chatVars.lastReadCounts = initialReadCounts;
+      console.log('[ChatPage] 初始消息已读计数:', initialReadCounts);
+    } else {
+      console.log('[ChatPage] 已存在消息已读计数，跳过初始化:', chatVars.lastReadCounts);
+    }
+
+    // 初始化动态已读计数
+    if (!chatVars.lastReadMoments || Object.keys(chatVars.lastReadMoments).length === 0) {
+      console.log('[ChatPage] 首次初始化动态已读计数');
+      const initialReadMoments: Record<string, number> = {};
+
+      Object.entries(phoneData.联系人).forEach(([contactName, contactInfo]: [string, any]) => {
+        // 将所有现有动态标记为已读
+        const momentsCount = contactInfo.空间动态 ? contactInfo.空间动态.length : 0;
+        initialReadMoments[contactName] = momentsCount;
+        console.log(`[ChatPage] 初始化 ${contactName} 已读动态数: ${momentsCount}`);
+      });
+
+      // 初始化用户自己的动态已读计数
+      if (phoneData.用户) {
+        const userMomentsCount = phoneData.用户.空间动态 ? phoneData.用户.空间动态.length : 0;
+        initialReadMoments['user'] = userMomentsCount;
+        console.log(`[ChatPage] 初始化用户已读动态数: ${userMomentsCount}`);
+      }
+
+      chatVars.lastReadMoments = initialReadMoments;
+      console.log('[ChatPage] 初始动态已读计数:', initialReadMoments);
+    } else {
+      console.log('[ChatPage] 已存在动态已读计数，跳过初始化:', chatVars.lastReadMoments);
+    }
+
+    // 保存到聊天变量
+    replaceVariables(chatVars, { type: 'chat' });
+    console.log('[ChatPage] 已读计数初始化完成');
+  } catch (error) {
+    console.error('[ChatPage] 初始化已读计数失败:', error);
+  }
+}
+
+// 从聊天变量读取已读消息数映射
+async function loadReadCountsFromScript(): Promise<Record<string, number>> {
+  try {
+    const chatVars = getVariables({ type: 'chat' });
+    const lastReadCounts = chatVars?.lastReadCounts || {};
+
+    console.log('[ChatPage] 从聊天变量读取已读消息数:', lastReadCounts);
+
+    // 更新缓存
+    readCountsCache.value = { ...lastReadCounts };
+
+    return lastReadCounts;
+  } catch (error) {
+    console.warn('[ChatPage] 从聊天变量读取已读消息数失败，使用缓存:', error);
+    // 降级使用内存缓存
+    return readCountsCache.value;
+  }
+}
+
+// 保存已读消息数映射到聊天变量
+async function saveReadCountsToScript(counts: Record<string, number>): Promise<void> {
+  try {
+    const chatVars = getVariables({ type: 'chat' }) || {};
+    chatVars.lastReadCounts = counts;
+
+    replaceVariables(chatVars, { type: 'chat' });
+
+    console.log('[ChatPage] 已保存已读消息数到聊天变量:', counts);
+
+    // 同时更新缓存
+    readCountsCache.value = { ...counts };
+  } catch (error) {
+    console.warn('[ChatPage] 保存已读消息数到聊天变量失败，仅更新缓存:', error);
+    // 降级仅更新内存缓存
+    readCountsCache.value = { ...counts };
+  }
+}
+
+// 从聊天变量读取已读动态数映射
+async function loadReadMomentsFromScript(): Promise<Record<string, number>> {
+  try {
+    const chatVars = getVariables({ type: 'chat' });
+    const lastReadMoments = chatVars?.lastReadMoments || {};
+
+    console.log('[ChatPage] 从聊天变量读取已读动态数:', lastReadMoments);
+
+    // 更新缓存
+    readMomentsCache.value = { ...lastReadMoments };
+
+    return lastReadMoments;
+  } catch (error) {
+    console.warn('[ChatPage] 从聊天变量读取已读动态数失败，使用缓存:', error);
+    // 降级使用内存缓存
+    return readMomentsCache.value;
+  }
+}
+
+// 保存已读动态数映射到聊天变量
+async function saveReadMomentsToScript(counts: Record<string, number>): Promise<void> {
+  try {
+    const chatVars = getVariables({ type: 'chat' }) || {};
+    chatVars.lastReadMoments = counts;
+
+    replaceVariables(chatVars, { type: 'chat' });
+
+    console.log('[ChatPage] 已保存已读动态数到聊天变量:', counts);
+
+    // 同时更新缓存
+    readMomentsCache.value = { ...counts };
+  } catch (error) {
+    console.warn('[ChatPage] 保存已读动态数到聊天变量失败，仅更新缓存:', error);
+    // 降级仅更新内存缓存
+    readMomentsCache.value = { ...counts };
+  }
+}
+
+// 计算未读消息数量
+async function calculateUnreadCounts() {
+  try {
+    // 从脚本变量读取已读消息数
+    const lastReadCounts = await loadReadCountsFromScript();
 
     const newUnreadCounts: Record<string, number> = {};
 
     // 遍历每个联系人
     Object.entries(contactsData.value).forEach(([contactName, contact]) => {
-      const lastViewTime = lastViewTimes[contactName] || 0;
-      let unreadCount = 0;
+      // 获取该联系人的已读消息数（默认为 0，表示全部未读）
+      const readCount = lastReadCounts[contactName] || 0;
 
-      // 统计在最后查看时间之后的非用户消息
-      Object.entries(contact.聊天记录).forEach(([timestampStr, message]) => {
-        const messageTime = new Date(timestampStr).getTime();
+      // 计算当前总消息数
+      const totalMessages = Object.keys(contact.聊天记录).length;
 
-        // 如果消息时间晚于最后查看时间，且不是用户发送的消息
-        if (messageTime > lastViewTime && !message.is_user) {
-          unreadCount++;
-        }
-      });
+      // 计算未读数 = 总消息数 - 已读消息数
+      // 使用 Math.max 防止出现负数（如果消息被删除的情况）
+      const unreadCount = Math.max(0, totalMessages - readCount);
 
       newUnreadCounts[contactName] = unreadCount;
     });
@@ -845,24 +1006,97 @@ function calculateUnreadCounts() {
   }
 }
 
-// 清除未读数量并更新最后查看时间
-function clearUnreadCount(contactName: string) {
+// 清除未读数量并更新已读消息数
+async function clearUnreadCount(contactName: string) {
   try {
-    const lastViewTimesJson = localStorage.getItem(LAST_VIEW_TIMES_KEY);
-    const lastViewTimes: Record<string, number> = lastViewTimesJson
-      ? JSON.parse(lastViewTimesJson)
-      : {};
+    // 读取当前的已读消息数映射
+    const lastReadCounts = await loadReadCountsFromScript();
 
-    // 记录当前时间为最后查看时间
-    lastViewTimes[contactName] = Date.now();
-    localStorage.setItem(LAST_VIEW_TIMES_KEY, JSON.stringify(lastViewTimes));
+    // 获取该联系人的当前总消息数
+    const contact = contactsData.value[contactName];
+    if (!contact) {
+      console.warn(`[ChatPage] 联系人 ${contactName} 不存在`);
+      return;
+    }
 
-    // 清除未读数量
+    const totalMessages = Object.keys(contact.聊天记录).length;
+
+    // 更新该联系人的已读消息数为当前总消息数（表示全部已读）
+    lastReadCounts[contactName] = totalMessages;
+
+    // 保存到脚本变量
+    await saveReadCountsToScript(lastReadCounts);
+
+    // 立即清除前端显示的未读数量
     unreadCounts.value[contactName] = 0;
 
-    console.log(`[ChatPage] 已清除 ${contactName} 的未读消息数量`);
+    console.log(`[ChatPage] 已清除 ${contactName} 的未读消息数量，已读数: ${totalMessages}`);
   } catch (error) {
     console.error('[ChatPage] 清除未读数量失败:', error);
+  }
+}
+
+// 计算未读动态的联系人数量
+async function calculateUnreadMomentsCount() {
+  try {
+    // 从脚本变量读取已读动态数
+    const lastReadMoments = await loadReadMomentsFromScript();
+
+    let unreadContactsCount = 0;
+
+    // 遍历每个联系人
+    Object.entries(contactsData.value).forEach(([contactName, contact]) => {
+      // 获取该联系人的已读动态数（默认为 0）
+      const readCount = lastReadMoments[contactName] || 0;
+
+      // 计算当前动态总数
+      const currentMomentsCount = (contact.空间动态 || []).length;
+
+      // 如果当前动态数 > 已读动态数，说明有新动态
+      if (currentMomentsCount > readCount) {
+        unreadContactsCount++; // 统计有新动态的联系人数量
+      }
+    });
+
+    // 可选：统计用户自己的未读动态
+    const userReadCount = lastReadMoments['user'] || 0;
+    const userMomentsCount = (userData.value.空间动态 || []).length;
+    if (userMomentsCount > userReadCount) {
+      unreadContactsCount++;
+    }
+
+    unreadMomentsCount.value = unreadContactsCount;
+    console.log('[ChatPage] 未读动态联系人数量已更新:', unreadMomentsCount.value);
+  } catch (error) {
+    console.error('[ChatPage] 计算未读动态数量失败:', error);
+  }
+}
+
+// 清除未读动态数（进入动态页面时调用）
+async function clearUnreadMomentsCount() {
+  try {
+    // 读取当前的已读动态数映射
+    const lastReadMoments = await loadReadMomentsFromScript();
+
+    // 遍历每个联系人，更新已读动态数为当前总数
+    Object.entries(contactsData.value).forEach(([contactName, contact]) => {
+      const currentMomentsCount = (contact.空间动态 || []).length;
+      lastReadMoments[contactName] = currentMomentsCount;
+    });
+
+    // 更新用户自己的已读动态数
+    const userMomentsCount = (userData.value.空间动态 || []).length;
+    lastReadMoments['user'] = userMomentsCount;
+
+    // 保存到脚本变量
+    await saveReadMomentsToScript(lastReadMoments);
+
+    // 立即清除前端显示的未读数量
+    unreadMomentsCount.value = 0;
+
+    console.log('[ChatPage] 已清除未读动态数量，已读动态:', lastReadMoments);
+  } catch (error) {
+    console.error('[ChatPage] 清除未读动态数量失败:', error);
   }
 }
 
@@ -1053,6 +1287,9 @@ const loadTavernData = async () => {
         // 计算未读消息数量
         calculateUnreadCounts();
 
+        // 计算未读动态数量
+        calculateUnreadMomentsCount();
+
         // 如果当前在对话页面，自动滚动到底部以显示新消息
         if (currentView.value === 'conversation' && !isScrolling.value) {
           nextTick(() => {
@@ -1192,9 +1429,12 @@ watch(
   { flush: 'post' },
 );
 
-onMounted(() => {
+onMounted(async () => {
   // 初始化
   try {
+    // 首先初始化已读计数（确保脚本变量有初始值）
+    await initializeReadCounts();
+
     // 启动酒馆数据监听器
     const cleanup = setupTavernDataListener();
 
@@ -1873,6 +2113,17 @@ nav {
 .mimi-nav-item:focus {
   outline: none;
   box-shadow: none;
+}
+
+/* 导航栏红点特殊样式 */
+.mimi-nav-badge {
+  position: absolute;
+  right: 28%;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  padding: 0 4px;
+  z-index: 2;
 }
 
 .mimi-nav-icon {
