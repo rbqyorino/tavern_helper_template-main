@@ -637,9 +637,12 @@ async function sendMessage() {
     }
 
     // 添加消息到前端显示
-    contactsData.value[activeContactName.value].聊天记录[timestampKey] = {
-      is_user: true,
-      message: messageText,
+    contactsData.value[activeContactName.value].聊天记录 = {
+      ...contactsData.value[activeContactName.value].聊天记录,
+      [timestampKey]: {
+        is_user: true,
+        message: messageText,
+      },
     };
 
     // 2. 将消息存入 MVU 数据
@@ -685,9 +688,12 @@ async function addMessageToMvuData(contactName: string, timestampKey: string, me
       phoneData.联系人[contactName].聊天记录 = {};
     }
 
-    phoneData.联系人[contactName].聊天记录[timestampKey] = {
-      is_user: true,
-      message: message,
+    phoneData.联系人[contactName].聊天记录 = {
+      ...phoneData.联系人[contactName].聊天记录,
+      [timestampKey]: {
+        is_user: true,
+        message: message,
+      },
     };
 
     // 更新 MVU 数据
