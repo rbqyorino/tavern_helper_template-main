@@ -137,39 +137,46 @@
           <div
             v-for="message in conversationMessages"
             :key="message.timestamp"
-            class="mimi-conversation-message"
-            :class="{ 'mimi-message--user': message.is_user }"
+            class="mimi-message-wrapper"
+            :class="{ 'mimi-message-wrapper--user': message.is_user }"
           >
-            <!-- 对方头像（左边） -->
-            <div v-if="!message.is_user" class="mimi-message-avatar">
-              <img :src="activeContact?.头像 || ''" alt="avatar" />
+            <!-- 时间单独占一行，横跨屏幕中间 -->
+            <div class="mimi-message-time-line">
+              {{ formatMessageTime(message.timestamp) }}
             </div>
-            <div class="mimi-message-content">
-              <div class="mimi-message-time">
-                {{ formatMessageTime(message.timestamp) }}
+            <!-- 消息内容 -->
+            <div
+              class="mimi-conversation-message"
+              :class="{ 'mimi-message--user': message.is_user }"
+            >
+              <!-- 对方头像（左边） -->
+              <div v-if="!message.is_user" class="mimi-message-avatar">
+                <img :src="activeContact?.头像 || ''" alt="avatar" />
               </div>
-              <div
-                class="mimi-message-bubble"
-                :style="
-                  message.is_user
-                    ? {
-                        backgroundColor: playerBubbleColor || '#007aff',
-                        color: playerTextColor || '#ffffff',
-                        fontSize: (playerFontSize || 14) + 'px',
-                      }
-                    : {
-                        backgroundColor: characterBubbleColor || '#ffffff',
-                        color: characterTextColor || '#000000',
-                        fontSize: (characterFontSize || 14) + 'px',
-                      }
-                "
-              >
-                {{ message.message }}
+              <div class="mimi-message-content">
+                <div
+                  class="mimi-message-bubble"
+                  :style="
+                    message.is_user
+                      ? {
+                          backgroundColor: playerBubbleColor || '#007aff',
+                          color: playerTextColor || '#ffffff',
+                          fontSize: (playerFontSize || 14) + 'px',
+                        }
+                      : {
+                          backgroundColor: characterBubbleColor || '#ffffff',
+                          color: characterTextColor || '#000000',
+                          fontSize: (characterFontSize || 14) + 'px',
+                        }
+                  "
+                >
+                  {{ message.message }}
+                </div>
               </div>
-            </div>
-            <!-- 用户头像（右边） -->
-            <div v-if="message.is_user" class="mimi-message-avatar mimi-message-avatar--user">
-              <img :src="userAvatar || ''" alt="我的头像" @error="handleAvatarError" />
+              <!-- 用户头像（右边） -->
+              <div v-if="message.is_user" class="mimi-message-avatar mimi-message-avatar--user">
+                <img :src="userAvatar || ''" alt="我的头像" @error="handleAvatarError" />
+              </div>
             </div>
           </div>
         </div>
@@ -1683,6 +1690,7 @@ onMounted(() => {
 }
 
 .mimi-conversation-message {
+  position: relative;  // 加这行
   display: flex;
   gap: 8px;
   max-width: 80%;
@@ -1738,10 +1746,24 @@ onMounted(() => {
   color: #ffffff;
 }
 
-.mimi-message-time {
+.mimi-message-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.mimi-message-wrapper--user {
+  align-items: flex-end;
+}
+
+.mimi-message-time-line {
+  width: 100%;
+  text-align: center;
   font-size: 11px;
   color: #8c9099;
-  text-align: center;
+  margin: 8px 0;
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
 .mimi-message-input-area {
