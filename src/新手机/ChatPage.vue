@@ -621,7 +621,7 @@ function goBack() {
 
 function goToMoments() {
   activeTab.value = 'moments';
-  currentView.value = 'messages';
+  currentView.value = 'moments';
 
   // 清除未读动态数
   clearUnreadMomentsCount();
