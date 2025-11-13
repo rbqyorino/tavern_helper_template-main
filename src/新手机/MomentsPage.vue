@@ -182,7 +182,7 @@ async function addUserMomentToFrontend(content: string) {
       phoneData.用户 = {
         昵称: props.userInfo?.name || '我的账号',
         头像: props.userInfo?.avatar || '',
-        空间动态: []
+        空间动态: {}
       };
     } else {
       // 如果用户数据存在但昵称为空，更新昵称
@@ -196,19 +196,19 @@ async function addUserMomentToFrontend(content: string) {
     }
 
     if (!phoneData.用户.空间动态) {
-      phoneData.用户.空间动态 = [];
+      phoneData.用户.空间动态 = {};
     }
 
     // 创建新动态对象
     const timestamp = Date.now();
+    const timestampKey = new Date(timestamp).toISOString();
     const newMoment = {
-      时间: new Date(timestamp).toISOString(),
-      内容: content,
-      评论列表: []
+      内容: content
+      // 不传入评论字段，让 MVU 根据 template 自动创建 extensible 的评论对象
     };
 
-    // 添加到用户动态列表开头（最新的在前面）
-    phoneData.用户.空间动态.unshift(newMoment);
+    // 将动态添加到对象中（时间戳作为 KEY）
+    phoneData.用户.空间动态[timestampKey] = newMoment;
 
     // 保存到MVU数据
     Mvu.setMvuVariable(mvuData, '手机数据', phoneData);

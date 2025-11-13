@@ -808,14 +808,14 @@ function loadContactsData(contactsDataParam: Record<string, any>) {
       昵称: info.昵称 || contactName,
       聊天记录数: chatRecordCount,
       聊天记录时间戳: Object.keys(chatRecords),
-      空间动态数: (info.空间动态 || []).length,
+      空间动态数: (info.空间动态 && typeof info.空间动态 === 'object') ? Object.keys(info.空间动态).length : 0,
     });
 
     formattedContacts[contactName] = {
       昵称: info.昵称 || contactName,
       头像: processedAvatar,
       聊天记录: chatRecords,
-      空间动态: info.空间动态 || [],
+      空间动态: info.空间动态 || {},
     };
   });
 
@@ -874,14 +874,14 @@ async function initializeReadCounts() {
 
       Object.entries(phoneData.联系人).forEach(([contactName, contactInfo]: [string, any]) => {
         // 将所有现有动态标记为已读
-        const momentsCount = contactInfo.空间动态 ? contactInfo.空间动态.length : 0;
+        const momentsCount = (contactInfo.空间动态 && typeof contactInfo.空间动态 === 'object') ? Object.keys(contactInfo.空间动态).length : 0;
         initialReadMoments[contactName] = momentsCount;
         console.log(`[ChatPage] 初始化 ${contactName} 已读动态数: ${momentsCount}`);
       });
 
       // 初始化用户自己的动态已读计数
       if (phoneData.用户) {
-        const userMomentsCount = phoneData.用户.空间动态 ? phoneData.用户.空间动态.length : 0;
+        const userMomentsCount = (phoneData.用户.空间动态 && typeof phoneData.用户.空间动态 === 'object') ? Object.keys(phoneData.用户.空间动态).length : 0;
         initialReadMoments['user'] = userMomentsCount;
         console.log(`[ChatPage] 初始化用户已读动态数: ${userMomentsCount}`);
       }
@@ -1050,7 +1050,7 @@ async function calculateUnreadMomentsCount() {
       const readCount = lastReadMoments[contactName] || 0;
 
       // 计算当前动态总数
-      const currentMomentsCount = (contact.空间动态 || []).length;
+      const currentMomentsCount = (contact.空间动态 && typeof contact.空间动态 === 'object') ? Object.keys(contact.空间动态).length : 0;
 
       // 如果当前动态数 > 已读动态数，说明有新动态
       if (currentMomentsCount > readCount) {
@@ -1060,7 +1060,7 @@ async function calculateUnreadMomentsCount() {
 
     // 可选：统计用户自己的未读动态
     const userReadCount = lastReadMoments['user'] || 0;
-    const userMomentsCount = (userData.value.空间动态 || []).length;
+    const userMomentsCount = (userData.value.空间动态 && typeof userData.value.空间动态 === 'object') ? Object.keys(userData.value.空间动态).length : 0;
     if (userMomentsCount > userReadCount) {
       unreadContactsCount++;
     }
@@ -1080,12 +1080,12 @@ async function clearUnreadMomentsCount() {
 
     // 遍历每个联系人，更新已读动态数为当前总数
     Object.entries(contactsData.value).forEach(([contactName, contact]) => {
-      const currentMomentsCount = (contact.空间动态 || []).length;
+      const currentMomentsCount = (contact.空间动态 && typeof contact.空间动态 === 'object') ? Object.keys(contact.空间动态).length : 0;
       lastReadMoments[contactName] = currentMomentsCount;
     });
 
     // 更新用户自己的已读动态数
-    const userMomentsCount = (userData.value.空间动态 || []).length;
+    const userMomentsCount = (userData.value.空间动态 && typeof userData.value.空间动态 === 'object') ? Object.keys(userData.value.空间动态).length : 0;
     lastReadMoments['user'] = userMomentsCount;
 
     // 保存到脚本变量
@@ -1109,27 +1109,29 @@ const userInfo = computed(() => ({
 // 用户动态数据计算属性
 const userMomentsData = computed(() => {
   const userMoments = userData.value.空间动态;
-  if (!Array.isArray(userMoments) || userMoments.length === 0) return [];
+  if (!userMoments || typeof userMoments !== 'object' || Object.keys(userMoments).length === 0) return [];
 
   const now = props.currentTime;
   const moments: any[] = [];
 
-  userMoments.forEach((moment, i) => {
-    if (!moment?.时间 || !moment.内容) return;
+  Object.entries(userMoments).forEach(([timestampKey, moment]: [string, any]) => {
+    if (!moment?.内容) return;
 
-    const comments = (moment.评论列表 || [])
-      .filter((comment: any) => comment?.发言内容)
-      .map((comment: any, j: number) => ({
-        id: `user-${moment.时间}-${j}`,
-        author: comment.ID || `访客${j + 1}`,
+    // 将评论对象转换为数组
+    const commentsObj = moment.评论 || {};
+    const comments = Object.entries(commentsObj)
+      .filter(([_, comment]: [string, any]) => comment?.发言内容)
+      .map(([commentId, comment]: [string, any]) => ({
+        id: `user-${timestampKey}-${commentId}`,
+        author: comment.ID || `访客${commentId}`,
         content: comment.发言内容,
       }));
 
-    const timestamp = new Date(moment.时间).getTime();
+    const timestamp = new Date(timestampKey).getTime();
     const validTimestamp = isNaN(timestamp) ? 0 : timestamp;
 
     moments.push({
-      id: `user-${moment.时间}-${i}`,
+      id: `user-${timestampKey}`,
       contactName: 'user', // 用户自己
       name: userData.value.昵称 || '',
       content: moment.内容,
@@ -1153,24 +1155,26 @@ const momentsData = computed(() => {
 
   Object.entries(contacts).forEach(([contactName, contact]) => {
     const contactMoments = contact.空间动态;
-    if (!Array.isArray(contactMoments)) return;
+    if (!contactMoments || typeof contactMoments !== 'object') return;
 
-    contactMoments.forEach((moment, i) => {
-      if (!moment?.时间 || !moment.内容) return;
+    Object.entries(contactMoments).forEach(([timestampKey, moment]: [string, any]) => {
+      if (!moment?.内容) return;
 
-      const comments = (moment.评论列表 || [])
-        .filter((comment: any) => comment?.发言内容)
-        .map((comment: any, j: number) => ({
-          id: `${contactName}-${moment.时间}-${j}`,
-          author: comment.ID || `访客${j + 1}`,
+      // 将评论对象转换为数组
+      const commentsObj = moment.评论 || {};
+      const comments = Object.entries(commentsObj)
+        .filter(([_, comment]: [string, any]) => comment?.发言内容)
+        .map(([commentId, comment]: [string, any]) => ({
+          id: `${contactName}-${timestampKey}-${commentId}`,
+          author: comment.ID || `访客${commentId}`,
           content: comment.发言内容,
         }));
 
-      const timestamp = new Date(moment.时间).getTime();
+      const timestamp = new Date(timestampKey).getTime();
       const validTimestamp = isNaN(timestamp) ? 0 : timestamp;
 
       moments.push({
-        id: `${contactName}-${moment.时间}-${i}`,
+        id: `${contactName}-${timestampKey}`,
         contactName,
         name: contact.昵称 || contactName,
         content: moment.内容,
