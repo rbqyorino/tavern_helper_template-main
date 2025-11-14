@@ -32,14 +32,19 @@
               <span class="mimi-moment-name">{{ moment.name }}</span>
             </div>
           </div>
-          <button class="mimi-moment-more" type="button" aria-label="更多" @click="handleMomentMore">
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"
-              />
-            </svg>
-          </button>
+          <div class="mimi-moment-more-wrapper">
+            <button class="mimi-moment-more" type="button" aria-label="更多" @click="toggleMomentMenu(moment.id)">
+              <svg viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"
+                />
+              </svg>
+            </button>
+            <div v-if="activeMomentMenu === moment.id" class="mimi-moment-menu">
+              <button class="mimi-moment-menu-item" @click="deleteMoment(moment.id)">删除</button>
+            </div>
+          </div>
         </header>
         <div class="mimi-moment-body">
           <p class="mimi-moment-content">{{ moment.content }}</p>
@@ -91,6 +96,7 @@ import PublishMomentPage from './PublishMomentPage.vue';
 // 定义发射事件和props
 const emit = defineEmits<{
   goBack: [];
+  momentDeleted: [];
 }>();
 
 const props = defineProps<{
@@ -104,6 +110,7 @@ const props = defineProps<{
 
 // 页面状态
 const currentView = ref<'list' | 'publish'>('list');
+const activeMomentMenu = ref<string | null>(null);
 
 // 回复输入框的状态
 const replyInputs = ref<Record<string, string>>({});
@@ -284,8 +291,72 @@ function fillMomentToTavernInput(moment: string) {
   }
 }
 
-function handleMomentMore() {
-  toastr.info('动态更多操作功能暂未完成，敬请期待！', '提示');
+function toggleMomentMenu(momentId: string) {
+  if (activeMomentMenu.value === momentId) {
+    activeMomentMenu.value = null;
+  } else {
+    activeMomentMenu.value = momentId;
+  }
+}
+
+async function deleteMoment(momentId: string) {
+  try {
+    console.log(`[MomentsPage] 准备删除动态: ${momentId}`);
+    
+    // 检查 Mvu 是否可用
+    if (typeof Mvu === 'undefined') {
+      console.error('[MomentsPage] Mvu 未定义，无法删除动态');
+      toastr.error('删除动态失败：MVU未初始化', '错误');
+      return;
+    }
+    
+    // 1. 解析 momentId
+    const [contactName, ...timestampParts] = momentId.split('-');
+    const timestampKey = timestampParts.join('-');
+
+    if (!contactName || !timestampKey) {
+      console.error('[MomentsPage] 删除失败: momentId 格式不正确', momentId);
+      toastr.error('删除动态失败', '错误');
+      return;
+    }
+
+    // 2. 遵循 MVU 模式: get -> modify -> replace
+    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    let deletePath: string;
+    if (contactName === 'user') {
+      deletePath = `用户.空间动态.${timestampKey}`;
+    } else {
+      deletePath = `联系人.${contactName}.空间动态.${timestampKey}`;
+    }
+    
+    console.log(`[MomentsPage] 构造的删除路径 (基于phoneData): ${deletePath}`);
+
+    // 3. 使用 lodash 的 unset 来删除数据
+    const deleteOccurred = _.unset(phoneData, deletePath);
+
+    if (deleteOccurred) {
+      // 4. 将修改后的数据写回
+      Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
+      await Mvu.replaceMvuData(mvuData, { type: 'message', message_id: 'latest' });
+
+      toastr.success('动态已删除', '成功');
+      console.log(`[MomentsPage] 动态 ${momentId} 已成功删除`);
+      
+      // 5. 通知父组件刷新数据
+      emit('momentDeleted');
+    } else {
+      console.warn(`[MomentsPage] 动态 ${momentId} 删除失败或已被删除`);
+      toastr.warning('动态删除失败或已被删除', '提示');
+    }
+  } catch (error) {
+    console.error('[MomentsPage] 删除动态时发生错误:', error);
+    toastr.error('删除动态时出错', '错误');
+  } finally {
+    // 6. 关闭菜单
+    activeMomentMenu.value = null;
+  }
 }
 
 function handleReplySubmit() {
@@ -460,6 +531,38 @@ function handleReplySubmit() {
 .mimi-moment-more svg {
   width: 16px;
   height: 16px;
+}
+
+.mimi-moment-more-wrapper {
+  position: relative;
+}
+
+.mimi-moment-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  z-index: 10;
+  width: 100px;
+}
+
+.mimi-moment-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #000; /* 设置为黑色 */
+}
+
+.mimi-moment-menu-item:hover {
+  background-color: #f5f5f5;
 }
 
 .mimi-moment-body {
