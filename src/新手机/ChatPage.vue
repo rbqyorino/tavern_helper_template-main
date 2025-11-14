@@ -205,6 +205,7 @@
           :user-moments-data="userMomentsData"
           :user-info="userInfo"
           @go-back="goBackFromMoments"
+          @moment-deleted="loadTavernData"
         />
       </div>
     </main>
