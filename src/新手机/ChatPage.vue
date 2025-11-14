@@ -1440,11 +1440,13 @@ onMounted(async () => {
     await initializeReadCounts();
 
     // 启动酒馆数据监听器
-    const cleanup = setupTavernDataListener();
+    const cleanup = await setupTavernDataListener();
 
     // 组件卸载时清理监听器和定时器
     onUnmounted(() => {
-      cleanup?.();
+      if (typeof cleanup === 'function') {
+        cleanup();
+      }
       if (scrollTimeout !== null) {
         clearTimeout(scrollTimeout);
         scrollTimeout = null;
@@ -1531,8 +1533,8 @@ onMounted(async () => {
 }
 
 .mimi-avatar {
-  width: clamp(36px, 10vw, 40px);
-  height: clamp(36px, 10vw, 40px);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid #ededed;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -1714,9 +1716,7 @@ onMounted(async () => {
   text-align: left;
   cursor: pointer;
   align-items: center;
-  min-height: 72px;
-  max-height: 72px;
-  height: 72px;
+  min-height: 68px; /* 减小最小高度以增加灵活性 */
   overflow: hidden;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -1739,8 +1739,8 @@ onMounted(async () => {
 }
 
 .mimi-avatar-wrapper img {
-  width: clamp(44px, 12vw, 48px);
-  height: clamp(44px, 12vw, 48px);
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #e5e5e8;
@@ -1953,8 +1953,8 @@ onMounted(async () => {
 }
 
 .mimi-message-avatar {
-  width: clamp(30px, 8vw, 32px);
-  height: clamp(30px, 8vw, 32px);
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -2179,5 +2179,132 @@ nav {
 
 .mimi-chat-app .mimi-moment-reply-input::placeholder {
   color: #9b9b9f !important;
+}
+
+/* 窄屏响应式压缩 */
+@media (max-width: 360px) {
+  .mimi-chat-header {
+    padding: 0 12px 10px;
+  }
+
+  .mimi-profile-name {
+    font-size: 15px;
+  }
+
+  .mimi-profile-status,
+  .mimi-timestamp {
+    font-size: 11px;
+  }
+
+  .mimi-message-item {
+    padding: 10px;
+    gap: 10px;
+    min-height: auto;
+  }
+
+  .mimi-name {
+    font-size: 14px;
+  }
+
+  .mimi-last-message {
+    font-size: 12px;
+  }
+
+  .mimi-conversation-messages {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .mimi-message-bubble {
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 16px;
+  }
+
+  .mimi-message-input-area {
+    padding: 12px;
+  }
+
+  .mimi-message-input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .mimi-chat-footer {
+    padding: 4px 10px;
+  }
+
+  .mimi-nav-item {
+    font-size: 11px;
+  }
+}
+
+/* 极端窄屏响应式压缩 */
+@media (max-width: 320px) {
+  /* Header */
+  .mimi-chat-header {
+    padding: 0 10px 8px;
+    gap: 8px;
+  }
+  .mimi-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .mimi-profile-name {
+    font-size: 14px;
+  }
+
+  /* Message List */
+  .mimi-message-item {
+    padding: 8px;
+    gap: 8px;
+  }
+  .mimi-avatar-wrapper img {
+    width: 40px;
+    height: 40px;
+  }
+  .mimi-name {
+    font-size: 13px;
+  }
+  .mimi-last-message,
+  .mimi-timestamp {
+    font-size: 11px;
+  }
+
+  /* Conversation View */
+  .mimi-conversation-messages {
+    padding: 10px;
+    gap: 8px;
+  }
+  .mimi-message-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  .mimi-message-bubble {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 14px;
+  }
+
+  /* Input Area */
+  .mimi-message-input-area {
+    padding: 8px 10px;
+  }
+  .mimi-message-input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* Footer */
+  .mimi-chat-footer {
+    padding: 2px 8px;
+  }
+  .mimi-nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .mimi-nav-item {
+    font-size: 10px;
+  }
 }
 </style>

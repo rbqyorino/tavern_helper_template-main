@@ -78,6 +78,12 @@
         </div>
       </section>
 
+      <!-- 对话预览 -->
+      <section class="mimi-settings-section">
+        <h2 class="mimi-settings-section-title">效果预览</h2>
+        <ChatPreview />
+      </section>
+
       <!-- 角色对话样式 -->
       <section class="mimi-settings-section">
         <h2 class="mimi-settings-section-title">角色对话样式</h2>
@@ -111,6 +117,7 @@
 import { ref } from 'vue';
 import { usePhoneSettingsStore } from './stores/phoneSettings';
 import ColorPicker from './ColorPicker.vue';
+import ChatPreview from './ChatPreview.vue';
 
 const MIN_SIZE = 300;
 
