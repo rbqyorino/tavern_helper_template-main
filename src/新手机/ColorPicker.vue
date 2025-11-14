@@ -71,8 +71,8 @@ function validateColor(e: Event) {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 1000%;
-  max-width: 80%;
+  flex: 1;
+  min-width: 0;
   box-sizing: border-box;
 
   &__swatch {
@@ -99,7 +99,7 @@ function validateColor(e: Event) {
 
   &__input {
     flex: 1;
-    max-width: calc(100% - 60px);
+    max-width: calc(80% - 50px);
     height: 36px;
     padding: 0 12px;
     border: 2px solid rgba(0, 0, 0, 0.1);
