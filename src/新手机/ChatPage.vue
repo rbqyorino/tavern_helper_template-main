@@ -680,83 +680,17 @@ async function sendMessage() {
   const contactName = activeContact.value?.昵称 || activeContactName.value;
 
   try {
-    // 1. 先在前端显示消息
-    const timestamp = Date.now();
-    const timestampKey = new Date(timestamp).toISOString();
-
-    // 确保联系人数据存在
-    if (!contactsData.value[activeContactName.value]) {
-      console.warn('[ChatPage] 联系人数据不存在:', activeContactName.value);
-      return;
-    }
-
-    // 添加消息到前端显示
-    contactsData.value[activeContactName.value].聊天记录 = {
-      ...contactsData.value[activeContactName.value].聊天记录,
-      [timestampKey]: {
-        is_user: true,
-        message: messageText,
-      },
-    };
-
-    // 2. 将消息存入 MVU 数据
-    await addMessageToMvuData(activeContactName.value, timestampKey, messageText);
-
-    // 3. 加工消息格式并填入酒馆输入框
+    // 加工消息格式并填入酒馆输入框
     const processedMessage = `[AZ中给${contactName}发送了消息：${messageText}]`;
     fillMessageToTavernInput(processedMessage);
 
     console.log('[ChatPage] 发送消息:', processedMessage);
 
-    // 4. 清空输入框
+    // 清空输入框
     messageInput.value = '';
-
-    // 5. 滚动到底部
-    nextTick(() => {
-      scrollToBottom();
-    });
   } catch (error) {
     console.error('[ChatPage] 发送消息失败:', error);
     toastr.error('发送消息失败', '错误');
-  }
-}
-
-// 将消息添加到 MVU 数据
-async function addMessageToMvuData(contactName: string, timestampKey: string, message: string) {
-  try {
-    if (typeof Mvu === 'undefined') {
-      console.warn('[ChatPage] Mvu 未定义，无法保存消息到 MVU 数据');
-      return;
-    }
-
-    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
-    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
-
-    if (!phoneData?.联系人?.[contactName]) {
-      console.warn('[ChatPage] MVU 数据中不存在该联系人:', contactName);
-      return;
-    }
-
-    // 添加消息到 MVU 数据
-    if (!phoneData.联系人[contactName].聊天记录) {
-      phoneData.联系人[contactName].聊天记录 = {};
-    }
-
-    phoneData.联系人[contactName].聊天记录 = {
-      ...phoneData.联系人[contactName].聊天记录,
-      [timestampKey]: {
-        is_user: true,
-        message: message,
-      },
-    };
-
-    // 更新 MVU 数据
-    Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
-    await Mvu.replaceMvuData(mvuData, { type: 'message', message_id: 'latest' });
-
-    console.log('[ChatPage] 消息已保存到 MVU 数据');
-  } catch (error) {
-    console.error('[ChatPage] 保存消息到 MVU 数据失败:', error);
   }
 }
 

@@ -81,7 +81,7 @@
             class="mimi-moment-reply-input"
             type="text"
             placeholder="说点什么吧"
-            @keypress.enter="handleReplySubmit"
+            @keypress.enter="handleReplySubmit(moment.id)"
             v-model="replyInputs[moment.id]"
           />
         </div>
@@ -184,68 +184,11 @@ function handlePublishBack() {
 }
 
 async function handleMomentPublish(content: string) {
-  // 1. 先在前端显示动态
-  await addUserMomentToFrontend(content);
-
-  // 2. 返回列表页面
+  // 返回列表页面
   currentView.value = 'list';
 
-  // 3. 将发布的内容发送到酒馆
+  // 将发布的内容发送到酒馆
   publishMomentToTavern(content);
-}
-
-// 将用户动态添加到前端和MVU数据
-async function addUserMomentToFrontend(content: string) {
-  try {
-    if (typeof Mvu === 'undefined') {
-      console.warn('[MomentsPage] Mvu 未定义，无法保存动态到前端');
-      return;
-    }
-
-    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
-    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
-
-    // 确保用户数据存在，并正确设置用户昵称
-    if (!phoneData.用户) {
-      phoneData.用户 = {
-        昵称: props.userInfo?.name || '我的账号',
-        头像: props.userInfo?.avatar || '',
-        空间动态: {}
-      };
-    } else {
-      // 如果用户数据存在但昵称为空，更新昵称
-      if (!phoneData.用户.昵称 && props.userInfo?.name) {
-        phoneData.用户.昵称 = props.userInfo.name;
-      }
-      // 确保头像也是最新的
-      if (!phoneData.用户.头像 && props.userInfo?.avatar) {
-        phoneData.用户.头像 = props.userInfo.avatar;
-      }
-    }
-
-    if (!phoneData.用户.空间动态) {
-      phoneData.用户.空间动态 = {};
-    }
-
-    // 创建新动态对象
-    const timestamp = Date.now();
-    const timestampKey = new Date(timestamp).toISOString();
-    const newMoment = {
-      内容: content
-      // 不传入评论字段，让 MVU 根据 template 自动创建 extensible 的评论对象
-    };
-
-    // 将动态添加到对象中（时间戳作为 KEY）
-    phoneData.用户.空间动态[timestampKey] = newMoment;
-
-    // 保存到MVU数据
-    Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
-    await Mvu.replaceMvuData(mvuData, { type: 'message', message_id: 'latest' });
-
-    console.log('[MomentsPage] 动态已添加到前端:', newMoment);
-  } catch (error) {
-    console.error('[MomentsPage] 添加动态到前端失败:', error);
-  }
 }
 
 // 将动态发布到酒馆的函数
@@ -452,8 +395,92 @@ async function deleteComment(momentId: string, commentId: string) {
   }
 }
 
-function handleReplySubmit() {
-  toastr.info('评论功能暂未完成，敬请期待！', '提示');
+function handleReplySubmit(momentId: string) {
+  // 获取输入内容
+  const replyContent = replyInputs.value[momentId]?.trim();
+
+  if (!replyContent) {
+    return;
+  }
+
+  try {
+    // 解析 momentId 获取 contactName 和 timestampKey
+    const [contactName, ...timestampParts] = momentId.split('-');
+    const timestampKey = timestampParts.join('-');
+
+    if (!contactName || !timestampKey) {
+      console.error('[MomentsPage] 回复失败: momentId 格式不正确', momentId);
+      toastr.error('回复失败', '错误');
+      return;
+    }
+
+    // 构造回复字符串
+    let replyPath: string;
+    if (contactName === 'user') {
+      replyPath = `用户.空间动态.${timestampKey}.评论`;
+    } else {
+      replyPath = `联系人.${contactName}.空间动态.${timestampKey}.评论`;
+    }
+
+    const processedReply = `[AZ中回复'${replyPath}'：${replyContent}]`;
+
+    console.log('[MomentsPage] 发送评论:', processedReply);
+
+    // 填入酒馆输入框
+    fillReplyToTavernInput(processedReply);
+
+    // 清空当前输入框
+    replyInputs.value[momentId] = '';
+
+    toastr.success('评论已发送', '成功');
+  } catch (error) {
+    console.error('[MomentsPage] 发送评论时出错:', error);
+    toastr.error('发送评论失败', '错误');
+  }
+}
+
+// 将评论填入酒馆输入框的函数
+function fillReplyToTavernInput(reply: string) {
+  try {
+    // 使用jQuery来操作酒馆的输入框
+    const $tavernTextarea = $('#send_textarea');
+
+    if ($tavernTextarea.length === 0) {
+      console.warn('[MomentsPage] 未找到酒馆输入框 #send_textarea');
+      toastr.warning('未找到酒馆输入框', '提示');
+      return;
+    }
+
+    // 获取当前输入框的内容
+    const currentContent = $tavernTextarea.val()?.toString().trim() || '';
+
+    // 如果输入框已有内容，需要在前面添加换行
+    let newContent: string;
+    if (currentContent) {
+      newContent = currentContent + '\n' + reply;
+    } else {
+      newContent = reply;
+    }
+
+    // 设置新的内容并触发input事件
+    $tavernTextarea
+      .val(newContent.trim())
+      .get(0)?.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // 将焦点设置到输入框
+    $tavernTextarea.focus();
+
+    // 将光标移动到末尾
+    const textarea = $tavernTextarea.get(0) as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+
+    console.log('[MomentsPage] 评论已填入酒馆输入框:', reply);
+  } catch (error) {
+    console.error('[MomentsPage] 填入评论到输入框时出错:', error);
+    throw error;
+  }
 }
 </script>
 
