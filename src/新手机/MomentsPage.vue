@@ -52,8 +52,28 @@
         </div>
         <ul v-if="moment.comments.length" class="mimi-moment-comments">
           <li v-for="comment in moment.comments" :key="comment.id" class="mimi-moment-comment">
-            <span class="mimi-moment-comment-author">{{ comment.author }}</span
-            >：{{ comment.content }}
+            <span class="mimi-moment-comment-text">
+              <span class="mimi-moment-comment-author">{{ comment.author }}</span
+              >：{{ comment.content }}
+            </span>
+            <div class="mimi-comment-more-wrapper">
+              <button
+                class="mimi-comment-more"
+                type="button"
+                aria-label="删除评论"
+                @click="toggleCommentMenu(comment.id)"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"
+                  />
+                </svg>
+              </button>
+              <div v-if="activeCommentMenu === comment.id" class="mimi-comment-menu">
+                <button class="mimi-comment-menu-item" @click="deleteComment(moment.id, comment.id)">删除</button>
+              </div>
+            </div>
           </li>
         </ul>
         <div class="mimi-moment-reply">
@@ -111,6 +131,7 @@ const props = defineProps<{
 // 页面状态
 const currentView = ref<'list' | 'publish'>('list');
 const activeMomentMenu = ref<string | null>(null);
+const activeCommentMenu = ref<string | null>(null);
 
 // 回复输入框的状态
 const replyInputs = ref<Record<string, string>>({});
@@ -299,17 +320,25 @@ function toggleMomentMenu(momentId: string) {
   }
 }
 
+function toggleCommentMenu(commentId: string) {
+  if (activeCommentMenu.value === commentId) {
+    activeCommentMenu.value = null;
+  } else {
+    activeCommentMenu.value = commentId;
+  }
+}
+
 async function deleteMoment(momentId: string) {
   try {
     console.log(`[MomentsPage] 准备删除动态: ${momentId}`);
-    
+
     // 检查 Mvu 是否可用
     if (typeof Mvu === 'undefined') {
       console.error('[MomentsPage] Mvu 未定义，无法删除动态');
       toastr.error('删除动态失败：MVU未初始化', '错误');
       return;
     }
-    
+
     // 1. 解析 momentId
     const [contactName, ...timestampParts] = momentId.split('-');
     const timestampKey = timestampParts.join('-');
@@ -330,7 +359,7 @@ async function deleteMoment(momentId: string) {
     } else {
       deletePath = `联系人.${contactName}.空间动态.${timestampKey}`;
     }
-    
+
     console.log(`[MomentsPage] 构造的删除路径 (基于phoneData): ${deletePath}`);
 
     // 3. 使用 lodash 的 unset 来删除数据
@@ -343,7 +372,7 @@ async function deleteMoment(momentId: string) {
 
       toastr.success('动态已删除', '成功');
       console.log(`[MomentsPage] 动态 ${momentId} 已成功删除`);
-      
+
       // 5. 通知父组件刷新数据
       emit('momentDeleted');
     } else {
@@ -356,6 +385,70 @@ async function deleteMoment(momentId: string) {
   } finally {
     // 6. 关闭菜单
     activeMomentMenu.value = null;
+  }
+}
+
+async function deleteComment(momentId: string, commentId: string) {
+  try {
+    console.log(`[MomentsPage] 准备删除评论: momentId=${momentId}, commentId=${commentId}`);
+
+    // 检查 Mvu 是否可用
+    if (typeof Mvu === 'undefined') {
+      console.error('[MomentsPage] Mvu 未定义，无法删除评论');
+      toastr.error('删除评论失败：MVU未初始化', '错误');
+      return;
+    }
+
+    // 1. 解析 momentId 和 commentId
+    const [contactName, ...timestampParts] = momentId.split('-');
+    const timestampKey = timestampParts.join('-');
+
+    // commentId 格式：`${contactName}-${timestampKey}-${actualCommentId}`
+    const commentIdParts = commentId.split('-');
+    const actualCommentId = commentIdParts[commentIdParts.length - 1];
+
+    if (!contactName || !timestampKey || !actualCommentId) {
+      console.error('[MomentsPage] 删除失败: ID 格式不正确', { momentId, commentId });
+      toastr.error('删除评论失败', '错误');
+      return;
+    }
+
+    // 2. 遵循 MVU 模式: get -> modify -> replace
+    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    let deletePath: string;
+    if (contactName === 'user') {
+      deletePath = `用户.空间动态.${timestampKey}.评论.${actualCommentId}`;
+    } else {
+      deletePath = `联系人.${contactName}.空间动态.${timestampKey}.评论.${actualCommentId}`;
+    }
+
+    console.log(`[MomentsPage] 构造的删除路径: ${deletePath}`);
+
+    // 3. 使用 lodash 的 unset 来删除评论
+    const deleteOccurred = _.unset(phoneData, deletePath);
+
+    if (deleteOccurred) {
+      // 4. 将修改后的数据写回
+      Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
+      await Mvu.replaceMvuData(mvuData, { type: 'message', message_id: 'latest' });
+
+      toastr.success('评论已删除', '成功');
+      console.log(`[MomentsPage] 评论已成功删除`);
+
+      // 5. 通知父组件刷新数据
+      emit('momentDeleted');
+    } else {
+      console.warn(`[MomentsPage] 评论删除失败或已被删除`);
+      toastr.warning('评论删除失败或已被删除', '提示');
+    }
+  } catch (error) {
+    console.error('[MomentsPage] 删除评论时发生错误:', error);
+    toastr.error('删除评论时出错', '错误');
+  } finally {
+    // 6. 关闭菜单
+    activeCommentMenu.value = null;
   }
 }
 
@@ -593,11 +686,74 @@ function handleReplySubmit() {
 
 .mimi-moment-comment {
   line-height: 1.4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.mimi-moment-comment-text {
+  flex: 1;
 }
 
 .mimi-moment-comment-author {
   color: #3271ff;
   font-weight: 500;
+}
+
+.mimi-comment-more-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mimi-comment-more {
+  border: none;
+  background: none;
+  color: #9b9b9f;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.mimi-comment-more:hover {
+  opacity: 1;
+}
+
+.mimi-comment-more svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mimi-comment-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  z-index: 10;
+  width: 80px;
+}
+
+.mimi-comment-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  color: #000;
+}
+
+.mimi-comment-menu-item:hover {
+  background-color: #f5f5f5;
 }
 
 .mimi-moment-reply {
