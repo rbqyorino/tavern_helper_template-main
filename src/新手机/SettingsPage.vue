@@ -58,19 +58,11 @@
         <div class="mimi-settings-group">
           <div class="mimi-settings-item">
             <label class="mimi-settings-label">气泡颜色</label>
-            <input
-              v-model="settings.player.bubbleColor"
-              type="text"
-              class="mimi-settings-input"
-            />
+            <ColorPicker v-model="settings.player.bubbleColor" />
           </div>
           <div class="mimi-settings-item">
             <label class="mimi-settings-label">文字颜色</label>
-            <input
-              v-model="settings.player.textColor"
-              type="text"
-              class="mimi-settings-input"
-            />
+            <ColorPicker v-model="settings.player.textColor" />
           </div>
           <div class="mimi-settings-item">
             <label class="mimi-settings-label" for="mimi-player-font-size">字体大小 (px)</label>
@@ -92,19 +84,11 @@
         <div class="mimi-settings-group">
           <div class="mimi-settings-item">
             <label class="mimi-settings-label">气泡颜色</label>
-            <input
-              v-model="settings.character.bubbleColor"
-              type="text"
-              class="mimi-settings-input"
-            />
+            <ColorPicker v-model="settings.character.bubbleColor" />
           </div>
           <div class="mimi-settings-item">
             <label class="mimi-settings-label">文字颜色</label>
-            <input
-              v-model="settings.character.textColor"
-              type="text"
-              class="mimi-settings-input"
-            />
+            <ColorPicker v-model="settings.character.textColor" />
           </div>
           <div class="mimi-settings-item">
             <label class="mimi-settings-label" for="mimi-character-font-size">字体大小 (px)</label>
@@ -126,6 +110,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { usePhoneSettingsStore } from './stores/phoneSettings';
+import ColorPicker from './ColorPicker.vue';
 
 const MIN_SIZE = 300;
 
