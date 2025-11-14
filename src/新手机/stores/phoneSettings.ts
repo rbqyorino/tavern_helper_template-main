@@ -4,31 +4,62 @@ import { ref, watch } from 'vue';
 const STORAGE_KEY = 'mimi-phone-settings';
 
 export interface PhoneSettings {
+  /** 手机整体宽度（像素） */
   phoneWidth: number;
+  /** 手机整体高度（像素） */
   phoneHeight: number;
+
+  /** 聊天主题：light/dark，用于决定整体背景与状态栏方案 */
+  theme: 'light' | 'dark';
+
+  /** 浅色主题下的聊天背景色 */
+  lightBg: string;
+
+  /** 深色主题下的聊天背景色 */
+  darkBg: string;
+
+  /** 玩家（用户）消息样式 */
   player: {
+    /** 玩家气泡背景色 */
     bubbleColor: string;
+    /** 玩家文字颜色 */
     textColor: string;
+    /** 玩家字体大小（px） */
     fontSize: number;
   };
+
+  /** 角色消息样式 */
   character: {
+    /** 角色气泡背景色 */
     bubbleColor: string;
+    /** 角色文字颜色 */
     textColor: string;
+    /** 角色字体大小（px） */
     fontSize: number;
   };
 }
 
 const defaultSettings: PhoneSettings = {
+  // 默认尺寸为接近 iPhone X 的大小
   phoneWidth: 375,
   phoneHeight: 812,
+
+  // 默认主题与背景
+  theme: 'light',
+  lightBg: '#f6f7ff',
+  darkBg: '#050816',
+
+  // 玩家对话样式
   player: {
-    bubbleColor: '#95C8FF',
-    textColor: '#000000',
+    bubbleColor: '#377DFF', // 稍微鲜明一点的主色
+    textColor: '#ffffff',
     fontSize: 14,
   },
+
+  // 角色对话样式
   character: {
     bubbleColor: '#E8E8E8',
-    textColor: '#000000',
+    textColor: '#111111',
     fontSize: 14,
   },
 };
@@ -85,7 +116,16 @@ export const usePhoneSettingsStore = defineStore('phoneSettings', () => {
 
   // 重置为默认设置
   function resetSettings() {
-    settings.value = { ...defaultSettings };
+    // 使用结构展开，确保丢弃外部引用，避免历史脏数据残留
+    settings.value = {
+      phoneWidth: defaultSettings.phoneWidth,
+      phoneHeight: defaultSettings.phoneHeight,
+      theme: defaultSettings.theme,
+      lightBg: defaultSettings.lightBg,
+      darkBg: defaultSettings.darkBg,
+      player: { ...defaultSettings.player },
+      character: { ...defaultSettings.character },
+    };
   }
 
   return { settings, resetSettings };
