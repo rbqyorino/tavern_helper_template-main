@@ -203,7 +203,7 @@ function applyDimensions() {
   flex: 1;
   width: 100%;
   box-sizing: border-box;
-  padding: 8px 12px 10px;
+  padding: 4px 8px 8px;
   overflow-y: auto;
   overflow-x: hidden;
   background: transparent;
@@ -211,11 +211,11 @@ function applyDimensions() {
 
 /* 手机尺寸设置块：轻量分组样式，避免整屏“方块感” */
 .mimi-settings-section {
-  margin-bottom: clamp(6px, 2.2vw, 10px);
+  margin-bottom: 6px;
 }
 
 .mimi-settings-section-title {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   font-size: 13px;
   font-weight: 600;
   color: #111827;
@@ -230,12 +230,13 @@ function applyDimensions() {
 .mimi-settings-item {
   display: flex;
   align-items: center;
-  gap: clamp(4px, 1.6vw, 8px);
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
 .mimi-settings-label {
   flex-shrink: 0;
-  width: clamp(70px, 26%, 90px);
+  width: 80px;
   font-size: 12px;
   color: #6b7280;
 }
@@ -243,6 +244,7 @@ function applyDimensions() {
 .mimi-settings-input {
   flex: 1;
   min-width: 0;
+  max-width: calc(60% - 50px);
   padding: 6px 8px;
   font-size: 12px;
   border-radius: 8px;
@@ -276,4 +278,14 @@ function applyDimensions() {
   flex-shrink: 0;
 }
 
+/* 极端窄屏适配：缩小字体，防止文字撑开布局 */
+@media (max-width: 320px) {
+  .mimi-settings-section-title {
+    font-size: 12px;
+  }
+  .mimi-settings-label,
+  .mimi-settings-input {
+    font-size: 11px;
+  }
+}
 </style>
