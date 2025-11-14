@@ -153,6 +153,25 @@
               <div v-if="!message.is_user" class="mimi-message-avatar">
                 <img :src="activeContact?.头像 || ''" alt="avatar" />
               </div>
+              <!-- 用户消息的三点菜单（左边） -->
+              <div v-if="message.is_user" class="mimi-message-more-wrapper">
+                <button
+                  class="mimi-message-more"
+                  type="button"
+                  aria-label="删除消息"
+                  @click="toggleMessageMenu(message.timestampKey)"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"
+                    />
+                  </svg>
+                </button>
+                <div v-if="activeMessageMenu === message.timestampKey" class="mimi-message-menu">
+                  <button class="mimi-message-menu-item" @click="deleteChatMessage(message.timestampKey)">删除</button>
+                </div>
+              </div>
               <div class="mimi-message-content">
                 <div
                   class="mimi-message-bubble"
@@ -171,6 +190,25 @@
                   "
                 >
                   {{ message.message }}
+                </div>
+              </div>
+              <!-- 角色消息的三点菜单（右边） -->
+              <div v-if="!message.is_user" class="mimi-message-more-wrapper">
+                <button
+                  class="mimi-message-more"
+                  type="button"
+                  aria-label="删除消息"
+                  @click="toggleMessageMenu(message.timestampKey)"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"
+                    />
+                  </svg>
+                </button>
+                <div v-if="activeMessageMenu === message.timestampKey" class="mimi-message-menu">
+                  <button class="mimi-message-menu-item" @click="deleteChatMessage(message.timestampKey)">删除</button>
                 </div>
               </div>
               <!-- 用户头像（右边） -->
@@ -309,6 +347,7 @@ const activeContactName = ref<string>('');
 const messageInput = ref('');
 const userAvatarLocal = ref<string>('');
 const messagesContainer = ref<HTMLElement | null>(null);
+const activeMessageMenu = ref<string | null>(null);
 
 // 未读消息数量管理
 const unreadCounts = ref<Record<string, number>>({});
@@ -415,6 +454,7 @@ const conversationMessages = computed(() => {
       return {
         ...msg,
         timestamp,
+        timestampKey: timeStr, // 保留原始时间戳字符串键，用于删除
       };
     })
     .sort((a, b) => a.timestamp - b.timestamp);
@@ -772,6 +812,66 @@ function handleAddContact() {
 
 function handleMoreOptions() {
   toastr.info('更多操作功能暂未完成，敬请期待！', '提示');
+}
+
+function toggleMessageMenu(timestampKey: string) {
+  if (activeMessageMenu.value === timestampKey) {
+    activeMessageMenu.value = null;
+  } else {
+    activeMessageMenu.value = timestampKey;
+  }
+}
+
+async function deleteChatMessage(timestampKey: string) {
+  try {
+    console.log(`[ChatPage] 准备删除聊天消息: timestampKey=${timestampKey}`);
+
+    // 检查 Mvu 是否可用
+    if (typeof Mvu === 'undefined') {
+      console.error('[ChatPage] Mvu 未定义，无法删除消息');
+      toastr.error('删除消息失败：MVU未初始化', '错误');
+      return;
+    }
+
+    // 检查当前是否有活动联系人
+    if (!activeContactName.value) {
+      console.error('[ChatPage] 没有活动联系人，无法删除消息');
+      toastr.error('删除消息失败', '错误');
+      return;
+    }
+
+    // 1. 遵循 MVU 模式: get -> modify -> replace
+    const mvuData = Mvu.getMvuData({ type: 'message', message_id: 'latest' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    // 2. 构造删除路径
+    const deletePath = `联系人.${activeContactName.value}.聊天记录.${timestampKey}`;
+    console.log(`[ChatPage] 构造的删除路径: ${deletePath}`);
+
+    // 3. 使用 lodash 的 unset 来删除消息
+    const deleteOccurred = _.unset(phoneData, deletePath);
+
+    if (deleteOccurred) {
+      // 4. 将修改后的数据写回
+      Mvu.setMvuVariable(mvuData, '手机数据', phoneData);
+      await Mvu.replaceMvuData(mvuData, { type: 'message', message_id: 'latest' });
+
+      toastr.success('消息已删除', '成功');
+      console.log(`[ChatPage] 消息 ${timestampKey} 已成功删除`);
+
+      // 5. 刷新数据
+      loadTavernData();
+    } else {
+      console.warn(`[ChatPage] 消息 ${timestampKey} 删除失败或已被删除`);
+      toastr.warning('消息删除失败或已被删除', '提示');
+    }
+  } catch (error) {
+    console.error('[ChatPage] 删除消息时发生错误:', error);
+    toastr.error('删除消息时出错', '错误');
+  } finally {
+    // 6. 关闭菜单
+    activeMessageMenu.value = null;
+  }
 }
 
 // 处理头像加载错误 - 隐藏图片而不是显示默认头像
@@ -1941,7 +2041,7 @@ onMounted(async () => {
 }
 
 .mimi-conversation-message {
-  position: relative;  // 加这行
+  position: relative;
   display: flex;
   gap: 8px;
   max-width: 80%;
@@ -1951,6 +2051,75 @@ onMounted(async () => {
 
 .mimi-message--user {
   align-self: flex-end;
+}
+
+.mimi-message-more-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.mimi-message-more {
+  border: none;
+  background: none;
+  color: #9b9b9f;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.mimi-conversation-message:hover .mimi-message-more {
+  opacity: 0.6;
+}
+
+.mimi-message-more:hover {
+  opacity: 1 !important;
+}
+
+.mimi-message-more svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mimi-message-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  z-index: 10;
+  min-width: 80px;
+  margin-top: 4px;
+}
+
+.mimi-message--user .mimi-message-menu {
+  left: auto;
+  right: 0;
+}
+
+.mimi-message-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #000;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.mimi-message-menu-item:hover {
+  background-color: #f5f5f5;
 }
 
 .mimi-message-avatar {
