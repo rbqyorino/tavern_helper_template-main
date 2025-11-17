@@ -6,7 +6,7 @@
   -->
   <div class="mimi-settings-page">
     <header class="mimi-settings-header">
-      <button class="mimi-settings-back" type="button" @click="$emit('close')">
+      <button class="mimi-settings-back" type="button" @click="handleClose">
         <svg viewBox="0 0 24 24" class="mimi-settings-back-icon">
           <path
             d="M15.5 5 9 11.5 15.5 18"
@@ -155,12 +155,20 @@ function applyDimensions() {
     toastr.success('手机尺寸已更新', '提示');
   }
 }
+
+function handleClose() {
+  emit('close');
+}
 </script>
 
 <style scoped lang="scss">
 /* 与 ChatPage 一致：占满 .mimi-phone-screen，不额外嵌套手机壳
    注意：这里就是“设置页的整块内容”，必须有自己的背景，不要透出主页 */
 .mimi-settings-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   width: 100%;

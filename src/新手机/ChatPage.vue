@@ -1529,6 +1529,10 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .mimi-chat-app {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1541,6 +1545,7 @@ onMounted(async () => {
   max-width: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  height: 100%;
 }
 
 .mimi-chat-app::-webkit-scrollbar {

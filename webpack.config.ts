@@ -462,9 +462,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       }
 
       // 非 gal 项目使用原有逻辑
-      if (argv.mode !== 'production' && ['vue', 'pixi'].some(key => request.includes(key))) {
-        return callback();
-      }
+
       const global = {
         jquery: '$',
         lodash: '_',

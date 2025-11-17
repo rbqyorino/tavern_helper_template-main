@@ -36,7 +36,7 @@
 
           <div class="mimi-phone-screen" :style="phoneScreenStyle">
             <!-- Home Page -->
-            <div v-show="currentView === 'home'" class="mimi-home-page">
+            <div v-if="currentView === 'home'" class="mimi-home-page">
               <header class="mimi-home-header">
                 <div class="mimi-home-clock">{{ currentTimeText }}</div>
                 <div class="mimi-home-date">{{ currentDateText }}</div>
@@ -102,7 +102,7 @@
 
             <!-- Chat Page -->
             <ChatPage
-              v-show="currentView === 'chat'"
+              v-else-if="currentView === 'chat'"
               ref="chatPageRef"
               :current-time="currentTime"
               :user-name="userName"
@@ -117,7 +117,7 @@
             />
 
             <!-- Settings Page -->
-            <SettingsPage v-show="currentView === 'settings'" @close="goHome" />
+            <SettingsPage v-else-if="currentView === 'settings'" @close="goHome" />
           </div>
         </div>
       </div>
@@ -705,7 +705,12 @@ const loadTimeFromTavern = async () => {
 }
 
 .mimi-home-page {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
