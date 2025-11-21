@@ -4,14 +4,14 @@
     :x="position.left"
     :y="position.top"
     :z="1000"
-    drag-handle="mimi-phone-drag-handle"
+    drag-handle="mimi-phone-border-handle"
     class="mimi-phone-wrapper"
     :style="phoneWrapperStyle"
     @dragging="handleDrag"
     @dragstop="handleDragStop"
   >
     <div class="mimi-phone-container" :style="phoneContainerStyle">
-      <div class="mimi-phone-frame">
+      <div class="mimi-phone-frame mimi-phone-border-handle">
         <div class="mimi-phone-notch">
           <span class="mimi-phone-notch__speaker"></span>
           <span class="mimi-phone-notch__camera"></span>
@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import ChatPage from './ChatPage.vue';
 import SettingsPage from './SettingsPage.vue';
 import DraggableWrapper from './DraggableWrapper.vue';
@@ -146,6 +146,38 @@ const userAvatar = ref('');
 // 使用 Pinia store 管理手机设置
 const settingsStore = usePhoneSettingsStore();
 const phoneSettings = computed(() => settingsStore.settings);
+
+// 初始化时验证最小尺寸
+const MIN_WIDTH = 300;
+const MIN_HEIGHT = 300;
+
+// 检查并调整尺寸至最小值
+if (settingsStore.settings.phoneWidth < MIN_WIDTH) {
+  settingsStore.settings.phoneWidth = MIN_WIDTH;
+}
+if (settingsStore.settings.phoneHeight < MIN_HEIGHT) {
+  settingsStore.settings.phoneHeight = MIN_HEIGHT;
+}
+
+// 实时监听宽度变化，防止界面变得太窄
+watch(
+  () => settingsStore.settings.phoneWidth,
+  (newValue) => {
+    if (newValue && newValue < MIN_WIDTH) {
+      settingsStore.settings.phoneWidth = MIN_WIDTH;
+    }
+  }
+);
+
+// 实时监听高度变化，防止界面变得太矮
+watch(
+  () => settingsStore.settings.phoneHeight,
+  (newValue) => {
+    if (newValue && newValue < MIN_HEIGHT) {
+      settingsStore.settings.phoneHeight = MIN_HEIGHT;
+    }
+  }
+);
 
 // 拖动功能
 const DEFAULT_MARGIN = 20;
@@ -713,6 +745,13 @@ const loadTimeFromTavern = async () => {
     0 18px 45px rgba(3, 6, 12, 0.4);
   display: flex;
   align-items: stretch;
+}
+
+.mimi-phone-border-handle {
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .mimi-phone-notch {

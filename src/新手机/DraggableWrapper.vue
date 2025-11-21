@@ -88,9 +88,15 @@ function handleMouseDown(event: MouseEvent) {
     return;
   }
 
+  const target = event.target as HTMLElement;
+
+  // 排除可交互元素的点击
+  if (target.closest('button, input, textarea, [role="button"]')) {
+    return;
+  }
+
   // 如果指定了拖动句柄，检查鼠标是否在句柄元素内
   if (props.dragHandle) {
-    const target = event.target as HTMLElement;
     const dragHandleElement = target.closest(`.${props.dragHandle}`);
     if (!dragHandleElement) {
       return; // 点击不在拖动句柄内，不启动拖动
@@ -143,9 +149,15 @@ function handleTouchStart(event: TouchEvent) {
     return;
   }
 
+  const target = event.target as HTMLElement;
+
+  // 排除可交互元素的触摸
+  if (target.closest('button, input, textarea, [role="button"]')) {
+    return;
+  }
+
   // 如果指定了拖动句柄，检查触摸是否在句柄元素内
   if (props.dragHandle) {
-    const target = event.target as HTMLElement;
     const dragHandleElement = target.closest(`.${props.dragHandle}`);
     if (!dragHandleElement) {
       return; // 触摸不在拖动句柄内，不启动拖动

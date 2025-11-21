@@ -30,24 +30,26 @@
             <label class="mimi-settings-label" for="mimi-phone-width">宽度 (px)</label>
             <input
               id="mimi-phone-width"
-              v-model.number="tempWidth"
+              v-model.number="settings.phoneWidth"
               type="number"
               class="mimi-settings-input"
-              @keyup.enter="applyDimensions"
+              @change="validateDimension('width')"
+              @keyup.enter="validateDimension('width')"
             />
           </div>
           <div class="mimi-settings-item">
             <label class="mimi-settings-label" for="mimi-phone-height">高度 (px)</label>
             <input
               id="mimi-phone-height"
-              v-model.number="tempHeight"
+              v-model.number="settings.phoneHeight"
               type="number"
               class="mimi-settings-input"
-              @keyup.enter="applyDimensions"
+              @change="validateDimension('height')"
+              @keyup.enter="validateDimension('height')"
             />
           </div>
           <p class="mimi-settings-hint">
-            按 Enter 应用尺寸。最小宽高 {{ MIN_SIZE }}px，若低于最小值会自动修正并提示。
+            最小宽度 {{ MIN_WIDTH }}px，最小高度 {{ MIN_HEIGHT }}px。输入完成后若低于最小值会自动调整。
           </p>
         </div>
       </section>
@@ -119,7 +121,8 @@ import { usePhoneSettingsStore } from './stores/phoneSettings';
 import ColorPicker from './ColorPicker.vue';
 import ChatPreview from './ChatPreview.vue';
 
-const MIN_SIZE = 300;
+const MIN_WIDTH = 300;
+const MIN_HEIGHT = 300;
 
 const emit = defineEmits<{
   close: [];
@@ -128,31 +131,18 @@ const emit = defineEmits<{
 const settingsStore = usePhoneSettingsStore();
 const settings = settingsStore.settings;
 
-// 使用临时变量承载输入框值，避免未确认输入立即改变手机尺寸
-const tempWidth = ref(settings.phoneWidth);
-const tempHeight = ref(settings.phoneHeight);
+// 验证并调整尺寸（在用户完成编辑时调用）
+function validateDimension(type: 'width' | 'height') {
+  const minValue = type === 'width' ? MIN_WIDTH : MIN_HEIGHT;
+  const value = type === 'width' ? settings.phoneWidth : settings.phoneHeight;
 
-function applyDimensions() {
-  let adjusted = false;
-
-  if (!tempWidth.value || tempWidth.value < MIN_SIZE) {
-    tempWidth.value = MIN_SIZE;
-    adjusted = true;
-  }
-
-  if (!tempHeight.value || tempHeight.value < MIN_SIZE) {
-    tempHeight.value = MIN_SIZE;
-    adjusted = true;
-  }
-
-  // 写回全局设置，Phone.vue 会据此调整宽度和 aspect-ratio
-  settings.phoneWidth = tempWidth.value;
-  settings.phoneHeight = tempHeight.value;
-
-  if (adjusted) {
-    toastr.warning(`手机尺寸已调整，最小宽高为 ${MIN_SIZE}px`, '提示');
-  } else {
-    toastr.success('手机尺寸已更新', '提示');
+  if (!value || value < minValue) {
+    if (type === 'width') {
+      settings.phoneWidth = minValue;
+    } else {
+      settings.phoneHeight = minValue;
+    }
+    toastr.warning(`${type === 'width' ? '宽度' : '高度'}已调整至最小值 ${minValue}px`, '提示');
   }
 }
 
