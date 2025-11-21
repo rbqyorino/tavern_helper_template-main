@@ -88,9 +88,15 @@ function handleMouseDown(event: MouseEvent) {
     return;
   }
 
+  const target = event.target as HTMLElement;
+
+  // 排除可交互元素的点击
+  if (target.closest('button, input, textarea, [role="button"]')) {
+    return;
+  }
+
   // 如果指定了拖动句柄，检查鼠标是否在句柄元素内
   if (props.dragHandle) {
-    const target = event.target as HTMLElement;
     const dragHandleElement = target.closest(`.${props.dragHandle}`);
     if (!dragHandleElement) {
       return; // 点击不在拖动句柄内，不启动拖动
@@ -143,16 +149,34 @@ function handleTouchStart(event: TouchEvent) {
     return;
   }
 
+  const target = event.target as HTMLElement;
+
+  // 排除可交互元素的触摸
+  if (target.closest('button, input, textarea, [role="button"]')) {
+    return;
+  }
+
   // 如果指定了拖动句柄，检查触摸是否在句柄元素内
   if (props.dragHandle) {
-    const target = event.target as HTMLElement;
     const dragHandleElement = target.closest(`.${props.dragHandle}`);
     if (!dragHandleElement) {
       return; // 触摸不在拖动句柄内，不启动拖动
     }
   }
 
+  // 确保有触摸点
+  if (!event.touches || event.touches.length === 0) {
+    return;
+  }
+
   const touch = event.touches[0];
+
+  // 验证触摸坐标有效性
+  if (typeof touch.clientX !== 'number' || typeof touch.clientY !== 'number') {
+    console.warn('[DraggableWrapper] 无效的触摸坐标');
+    return;
+  }
+
   startX = touch.clientX;
   startY = touch.clientY;
   originalLeft = localPosition.left;
@@ -167,12 +191,27 @@ function handleTouchMove(event: TouchEvent) {
     return;
   }
 
+  // 确保有触摸点
+  if (!event.touches || event.touches.length === 0) {
+    return;
+  }
+
   const touch = event.touches[0];
+
+  // 验证触摸坐标有效性
+  if (typeof touch.clientX !== 'number' || typeof touch.clientY !== 'number') {
+    console.warn('[DraggableWrapper] 无效的触摸坐标');
+    return;
+  }
+
   const dx = touch.clientX - startX;
   const dy = touch.clientY - startY;
 
   localPosition.left = originalLeft + dx;
   localPosition.top = originalTop + dy;
+
+  // 阻止默认行为（防止页面滚动）
+  event.preventDefault();
 
   emit('dragging', {
     left: localPosition.left,
@@ -182,10 +221,13 @@ function handleTouchMove(event: TouchEvent) {
   });
 }
 
-function handleTouchEnd() {
+function handleTouchEnd(event: TouchEvent) {
   if (!isDragging.value) return;
 
   isDragging.value = false;
+
+  // 阻止默认行为
+  event.preventDefault();
 
   emit('dragstop', {
     left: localPosition.left,
@@ -203,5 +245,11 @@ function handleTouchEnd() {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+  /* 移动端特定优化 */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  /* 防止缩放时出现闪烁 */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
 </style>

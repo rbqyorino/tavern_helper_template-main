@@ -4,14 +4,14 @@
     :x="position.left"
     :y="position.top"
     :z="1000"
-    drag-handle="mimi-phone-drag-handle"
+    drag-handle="mimi-phone-border-handle"
     class="mimi-phone-wrapper"
     :style="phoneWrapperStyle"
     @dragging="handleDrag"
     @dragstop="handleDragStop"
   >
     <div class="mimi-phone-container" :style="phoneContainerStyle">
-      <div class="mimi-phone-frame">
+      <div class="mimi-phone-frame mimi-phone-border-handle">
         <div class="mimi-phone-notch">
           <span class="mimi-phone-notch__speaker"></span>
           <span class="mimi-phone-notch__camera"></span>
@@ -36,7 +36,7 @@
 
           <div class="mimi-phone-screen" :style="phoneScreenStyle">
             <!-- Home Page -->
-            <div v-show="currentView === 'home'" class="mimi-home-page">
+            <div v-if="currentView === 'home'" class="mimi-home-page">
               <header class="mimi-home-header">
                 <div class="mimi-home-clock">{{ currentTimeText }}</div>
                 <div class="mimi-home-date">{{ currentDateText }}</div>
@@ -102,7 +102,7 @@
 
             <!-- Chat Page -->
             <ChatPage
-              v-show="currentView === 'chat'"
+              v-else-if="currentView === 'chat'"
               ref="chatPageRef"
               :current-time="currentTime"
               :user-name="userName"
@@ -117,7 +117,7 @@
             />
 
             <!-- Settings Page -->
-            <SettingsPage v-show="currentView === 'settings'" @close="goHome" />
+            <SettingsPage v-else-if="currentView === 'settings'" @close="goHome" />
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import ChatPage from './ChatPage.vue';
 import SettingsPage from './SettingsPage.vue';
 import DraggableWrapper from './DraggableWrapper.vue';
@@ -147,6 +147,38 @@ const userAvatar = ref('');
 const settingsStore = usePhoneSettingsStore();
 const phoneSettings = computed(() => settingsStore.settings);
 
+// 初始化时验证最小尺寸
+const MIN_WIDTH = 300;
+const MIN_HEIGHT = 300;
+
+// 检查并调整尺寸至最小值
+if (settingsStore.settings.phoneWidth < MIN_WIDTH) {
+  settingsStore.settings.phoneWidth = MIN_WIDTH;
+}
+if (settingsStore.settings.phoneHeight < MIN_HEIGHT) {
+  settingsStore.settings.phoneHeight = MIN_HEIGHT;
+}
+
+// 实时监听宽度变化，防止界面变得太窄
+watch(
+  () => settingsStore.settings.phoneWidth,
+  (newValue) => {
+    if (newValue && newValue < MIN_WIDTH) {
+      settingsStore.settings.phoneWidth = MIN_WIDTH;
+    }
+  }
+);
+
+// 实时监听高度变化，防止界面变得太矮
+watch(
+  () => settingsStore.settings.phoneHeight,
+  (newValue) => {
+    if (newValue && newValue < MIN_HEIGHT) {
+      settingsStore.settings.phoneHeight = MIN_HEIGHT;
+    }
+  }
+);
+
 // 拖动功能
 const DEFAULT_MARGIN = 20;
 const MAX_PHONE_WIDTH = 390;
@@ -159,6 +191,41 @@ const position = ref({
 // 双击返回主页功能
 const lastTapTime = ref(0);
 const TAP_TIMEOUT = 300; // 双击间隔时间（毫秒）
+
+// 验证位置是否在视口内
+function validatePosition(pos: { left: number; top: number }): { left: number; top: number } {
+  const width = getEffectivePhoneWidth();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  // 计算手机高度（基于宽高比）
+  const aspectRatio = phoneSettings.value.phoneHeight / phoneSettings.value.phoneWidth;
+  const height = width * aspectRatio;
+
+  // 确保左边界在视口内
+  let validatedLeft = Math.max(
+    DEFAULT_MARGIN,
+    Math.min(pos.left, viewportWidth - width - DEFAULT_MARGIN)
+  );
+
+  // 确保上边界在视口内
+  let validatedTop = Math.max(
+    DEFAULT_MARGIN,
+    Math.min(pos.top, viewportHeight - height - DEFAULT_MARGIN)
+  );
+
+  // 如果位置被调整过，记录日志
+  if (validatedLeft !== pos.left || validatedTop !== pos.top) {
+    console.log('[Phone] 位置超出视口范围，已调整', {
+      原始位置: pos,
+      调整后位置: { left: validatedLeft, top: validatedTop },
+      视口尺寸: { width: viewportWidth, height: viewportHeight },
+      手机尺寸: { width, height },
+    });
+  }
+
+  return { left: validatedLeft, top: validatedTop };
+}
 
 function getInitialPosition() {
   const width = getEffectivePhoneWidth();
@@ -173,7 +240,7 @@ function getInitialPosition() {
   const left = Math.max(DEFAULT_MARGIN, (viewportWidth - width) / 2);
   const top = Math.max(DEFAULT_MARGIN, (viewportHeight - height) / 2);
 
-  return { left, top };
+  return validatePosition({ left, top });
 }
 
 function getEffectivePhoneWidth(): number {
@@ -181,13 +248,30 @@ function getEffectivePhoneWidth(): number {
   const viewportHeight = window.innerHeight;
   const minGap = DEFAULT_MARGIN * 2;
 
+  // 检测是否在小屏幕（小于 500px）
+  const isSmallScreen = viewportWidth < 500;
+
+  // 小屏幕特殊处理：尽可能利用可用宽度
+  if (isSmallScreen) {
+    const availableWidth = Math.max(0, viewportWidth - minGap);
+
+    // 基于高度的限制（反推宽度）
+    const aspectRatio = phoneSettings.value.phoneHeight / phoneSettings.value.phoneWidth;
+    const maxHeight = viewportHeight - minGap;
+    const widthBasedOnHeight = maxHeight / aspectRatio;
+
+    // 取两者中较小值
+    return Math.min(availableWidth, widthBasedOnHeight);
+  }
+
+  // 普通屏幕的原始逻辑
   // 基于宽度的限制
   const maxWidthByViewportWidth = Math.min(MAX_PHONE_WIDTH, viewportWidth * 0.9);
   const widthBasedLimit = Math.min(maxWidthByViewportWidth, Math.max(0, viewportWidth - minGap));
 
   // 基于高度的限制（反推宽度）
   const aspectRatio = phoneSettings.value.phoneHeight / phoneSettings.value.phoneWidth;
-  const maxHeight = viewportHeight - minGap; // 留40px边距
+  const maxHeight = viewportHeight - minGap;
   const widthBasedOnHeight = maxHeight / aspectRatio;
 
   // 取两者中较小值，确保手机完整显示在视口内
@@ -223,13 +307,24 @@ onMounted(async () => {
   if (savedPosition) {
     try {
       const parsed = JSON.parse(savedPosition) as { left?: number; top?: number };
-      initial = {
+      const candidate = {
         left: typeof parsed.left === 'number' ? parsed.left : initial.left,
         top: typeof parsed.top === 'number' ? parsed.top : initial.top,
       };
-    } catch {
-      // Ignore malformed data and fall back to the default position
+
+      // 验证保存的位置是否仍在视口内
+      initial = validatePosition(candidate);
+
+      console.log('[Phone] 从 localStorage 加载位置', {
+        保存的位置: candidate,
+        验证后位置: initial,
+      });
+    } catch (error) {
+      console.warn('[Phone] 解析 localStorage 位置失败，使用默认位置', error);
+      // 解析失败则使用默认位置
     }
+  } else {
+    console.log('[Phone] 没有保存的位置，使用默认位置');
   }
 
   applyPosition(initial);
@@ -255,20 +350,42 @@ onMounted(async () => {
 });
 
 const showPhone = async () => {
-  // 如果用户设置的手机高度小于400px，强制使用居中位置
-  if (phoneSettings.value.phoneHeight < 400) {
-    const centeredPosition = getInitialPosition();
-    applyPosition(centeredPosition);
-  }
+  try {
+    console.log('[Phone] showPhone 方法被调用');
 
-  visible.value = true;
-  // 显示时刷新数据
-  refreshChatData();
-  await nextTick();
+    // 如果用户设置的手机高度小于400px，强制使用居中位置
+    if (phoneSettings.value.phoneHeight < 400) {
+      console.log('[Phone] 用户设置的手机高度小于 400px，使用居中位置');
+      const centeredPosition = getInitialPosition();
+      applyPosition(centeredPosition);
+    }
+
+    console.log('[Phone] 设置 visible.value = true');
+    visible.value = true;
+
+    // 显示时刷新数据
+    console.log('[Phone] 刷新聊天数据');
+    refreshChatData();
+
+    console.log('[Phone] 等待下一个 Vue 更新周期');
+    await nextTick();
+
+    console.log('[Phone] showPhone 执行完成，手机界面应该已显示');
+  } catch (error) {
+    console.error('[Phone] showPhone 执行失败:', error);
+    // 即使出错也尝试让界面可见
+    visible.value = true;
+  }
 };
 
 const hidePhone = async () => {
-  visible.value = false;
+  try {
+    console.log('[Phone] hidePhone 方法被调用');
+    visible.value = false;
+    console.log('[Phone] hidePhone 执行完成，手机界面应该已隐藏');
+  } catch (error) {
+    console.error('[Phone] hidePhone 执行失败:', error);
+  }
 };
 
 // 刷新聊天数据的方法
@@ -324,10 +441,39 @@ const currentDateText = computed(() => {
 });
 
 // 手机容器样式
-const phoneWrapperStyle = computed(() => ({
-  width: phoneSettings.value.phoneWidth ? `${phoneSettings.value.phoneWidth}px` : 'min(390px, 90vw, calc(100vw - 32px))',
-  maxWidth: phoneSettings.value.phoneWidth ? `${phoneSettings.value.phoneWidth}px` : 'min(390px, 90vw)',
-}));
+const phoneWrapperStyle = computed(() => {
+  // 检测是否在小屏幕移动设备（小于 500px）
+  const isSmallScreen = window.innerWidth < 500;
+  const viewportWidth = window.innerWidth;
+
+  if (phoneSettings.value.phoneWidth) {
+    // 用户设置了宽度
+    const desiredWidth = phoneSettings.value.phoneWidth;
+    // 在小屏幕上，如果设置宽度超过视口，缩小到适应视口
+    const finalWidth = isSmallScreen
+      ? Math.min(desiredWidth, viewportWidth - 20)
+      : desiredWidth;
+    return {
+      width: `${finalWidth}px`,
+      maxWidth: `${finalWidth}px`,
+    };
+  }
+
+  // 未设置宽度，使用响应式计算
+  if (isSmallScreen) {
+    // 小屏幕：使用视口宽度减去边距
+    return {
+      width: `calc(100vw - 20px)`,
+      maxWidth: `calc(100vw - 20px)`,
+    };
+  }
+
+  // 普通屏幕：原始逻辑
+  return {
+    width: 'min(390px, 90vw, calc(100vw - 32px))',
+    maxWidth: 'min(390px, 90vw)',
+  };
+});
 
 const phoneContainerStyle = computed(() => {
   if (phoneSettings.value.phoneWidth && phoneSettings.value.phoneHeight) {
@@ -601,6 +747,13 @@ const loadTimeFromTavern = async () => {
   align-items: stretch;
 }
 
+.mimi-phone-border-handle {
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
 .mimi-phone-notch {
   position: absolute;
   top: 12px;
@@ -705,7 +858,12 @@ const loadTimeFromTavern = async () => {
 }
 
 .mimi-home-page {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
