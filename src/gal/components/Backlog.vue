@@ -405,7 +405,7 @@ onUnmounted(() => {
   overflow: hidden;
   font-family: 'Noto Serif SC', serif;
   z-index: 10000;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bg.webp') no-repeat center / cover;
+  background: url('https://amakano3.yorino.space/menu/blog/bg.webp') no-repeat center / cover;
 }
 
 // 背景
@@ -415,7 +415,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bg.webp') no-repeat center / cover;
+  background: url('https://amakano3.yorino.space/menu/blog/bg.webp') no-repeat center / cover;
   z-index: 0;
   pointer-events: none;
 }
@@ -476,15 +476,15 @@ onUnmounted(() => {
 }
 
 .icon-jump {
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_jump.webp');
+  background-image: url('https://amakano3.yorino.space/menu/blog/bt_jump.webp');
 }
 
 .icon-voice {
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_voice.webp');
+  background-image: url('https://amakano3.yorino.space/menu/blog/bt_voice.webp');
 }
 
 .icon-favo {
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_favo.webp');
+  background-image: url('https://amakano3.yorino.space/menu/blog/bt_favo.webp');
 }
 
 // 右侧文本列
@@ -555,28 +555,28 @@ onUnmounted(() => {
 }
 
 .btn-pageup {
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_pageup.webp');
+  background-image: url('https://amakano3.yorino.space/menu/blog/bt_pageup.webp');
 }
 
 .btn-up {
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_up.webp');
+  background-image: url('https://amakano3.yorino.space/menu/blog/bt_up.webp');
   margin-top: 8px;
 }
 
 .btn-down {
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_down.webp');
+  background-image: url('https://amakano3.yorino.space/menu/blog/bt_down.webp');
   margin-bottom: 8px;
 }
 
 .btn-pagedown {
-  background-image: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_pagedown.webp');
+  background-image: url('https://amakano3.yorino.space/menu/blog/bt_pagedown.webp');
 }
 
 // 滚动轨道
 .scroll-track {
   width: 20px;
   height: calc(100% - 200px);
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_slider.webp') no-repeat center top;
+  background: url('https://amakano3.yorino.space/menu/blog/bt_slider.webp') no-repeat center top;
   background-size: 100% 200%;
   position: relative;
   cursor: pointer;
@@ -598,7 +598,7 @@ onUnmounted(() => {
   left: 0;
   width: 20px;
   height: 50px;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/spin.webp') no-repeat center;
+  background: url('https://amakano3.yorino.space/menu/blog/spin.webp') no-repeat center;
   background-size: 100% 100%;
   cursor: grab;
 
@@ -614,7 +614,7 @@ onUnmounted(() => {
   bottom: 10px;
   width: 150px;
   height: 60px;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/blog/bt_ret.webp') no-repeat center top;
+  background: url('https://amakano3.yorino.space/menu/blog/bt_ret.webp') no-repeat center top;
   background-size: 100% 200%;
   cursor: pointer;
   transition: background-position 0.15s ease;

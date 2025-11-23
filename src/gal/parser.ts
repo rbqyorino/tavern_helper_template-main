@@ -237,19 +237,19 @@ export class MessageParser {
 
     switch (type) {
       case 'sprite':
-        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/sprite/';
+        baseUrl = 'https://amakano3.yorino.space/sprite/';
         extension = '.webp';
         break;
       case 'bg':
-        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/bg/';
+        baseUrl = 'https://amakano3.yorino.space/bg/';
         extension = '.webp';
         break;
       case 'cg':
-        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/cg/';
+        baseUrl = 'https://amakano3.yorino.space/cg/';
         extension = '.webp';
         break;
       case 'bgm':
-        baseUrl = 'https://gitgud.io/RBQ/amakano3/-/raw/master/bgm/';
+        baseUrl = 'https://amakano3.yorino.space/bgm/';
         extension = '.mp3';
         break;
     }
@@ -294,10 +294,18 @@ export class MessageParser {
 
     // 如果已经有扩展名，直接使用
     if (/\.(png|jpg|jpeg|gif|webp|mp3|ogg|wav)$/i.test(alias)) {
+      // BGM需要URL编码（处理日文等特殊字符）
+      if (type === 'bgm') {
+        return `${baseUrl}${encodeURIComponent(alias)}`;
+      }
       return `${baseUrl}${alias}`;
     }
 
     // 添加默认扩展名
+    // BGM需要URL编码（处理日文等特殊字符）
+    if (type === 'bgm') {
+      return `${baseUrl}${encodeURIComponent(alias)}${extension}`;
+    }
     return `${baseUrl}${alias}${extension}`;
   }
 }

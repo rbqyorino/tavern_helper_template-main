@@ -81,7 +81,7 @@
         <!-- 自动播放指示图标 -->
         <transition name="fade">
           <div v-if="isAutoPlaying" class="auto-indicator">
-            <img src="https://gitgud.io/RBQ/amakano3/-/raw/master/menu/auto.webp" alt="自动" />
+            <img src="https://amakano3.yorino.space/menu/auto.webp" alt="自动" />
           </div>
         </transition>
       </div>
@@ -518,6 +518,7 @@ const playBgm = (bgmName: string) => {
   }
 
   const url = MessageParser.resolveAssetUrl(bgmName, 'bgm');
+  console.log('[BGM] 构建的URL:', url);
 
   // 停止当前实例的旧音乐
   stopBgm();
@@ -544,11 +545,27 @@ const playBgm = (bgmName: string) => {
   bgmAudio.loop = true;
   bgmAudio.volume = bgmVolume.value;
 
+  // 添加错误事件监听
+  bgmAudio.addEventListener('error', () => {
+    console.error('[BGM] 加载失败，错误代码:', bgmAudio?.error?.code, bgmAudio?.error?.message);
+    console.error('[BGM] 完整错误对象:', bgmAudio?.error);
+    console.error('[BGM] URL:', url);
+  });
+
+  // 添加加载状态监听
+  bgmAudio.addEventListener('loadstart', () => {
+    console.log('[BGM] 开始加载...');
+  });
+
+  bgmAudio.addEventListener('canplay', () => {
+    console.log('[BGM] 可以播放');
+  });
+
   bgmAudio.addEventListener('loadedmetadata', updateBgmDuration);
   bgmAudio.addEventListener('timeupdate', updateBgmTime);
 
   bgmAudio.play().catch(error => {
-    console.error('播放BGM失败:', error);
+    console.error('[BGM] 播放失败:', error);
   });
 
   bgmIsPlaying.value = true;
@@ -1492,7 +1509,7 @@ const handleMessage = async (message: string) => {
 
   // 存储所有行并重置索引
   allLines.value = lines;
-  currentLineIndex.value = 0;
+  currentLineIndex.value = -1;
 
   // 开始处理第一行
   if (allLines.value.length > 0) {
@@ -1858,7 +1875,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/mw01.webp') no-repeat center / cover;
+  background: url('https://amakano3.yorino.space/menu/mw01.webp') no-repeat center / cover;
   opacity: var(--dialogue-bg-opacity, 0.7);
   z-index: 0;
   pointer-events: none;
@@ -1888,7 +1905,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/name.webp') no-repeat center / 100% 100%;
+  background: url('https://amakano3.yorino.space/menu/name.webp') no-repeat center / 100% 100%;
   opacity: 0.8;
   z-index: -1;
   pointer-events: none;
@@ -1996,7 +2013,7 @@ onUnmounted(() => {
   position: absolute;
   top: 20px;
   left: 0;
-  background: url('https://gitgud.io/RBQ/amakano3/-/raw/master/menu/music/bt_bgm.webp') no-repeat center / 100% 100%;
+  background: url('https://amakano3.yorino.space/menu/music/bt_bgm.webp') no-repeat center / 100% 100%;
   z-index: 6;
   display: flex;
   align-items: center;
