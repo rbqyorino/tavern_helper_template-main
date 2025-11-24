@@ -15,13 +15,7 @@
 
     <!-- CG层 - 全屏覆盖 -->
     <transition name="fade">
-      <img
-        v-if="currentCg && !hideCg"
-        :key="currentCg"
-        :src="currentCg"
-        class="cg-image"
-        alt="CG"
-      />
+      <img v-if="currentCg && !hideCg" :key="currentCg" :src="currentCg" class="cg-image" alt="CG" />
     </transition>
 
     <!-- 角色立绘层 -->
@@ -45,7 +39,10 @@
         <img
           v-if="characters['L']"
           :src="characters['L']!.sprite"
-          :class="['head-portrait character-sprite', { active: characters['L']!.isActive, inactive: !characters['L']!.isActive }]"
+          :class="[
+            'head-portrait character-sprite',
+            { active: characters['L']!.isActive, inactive: !characters['L']!.isActive },
+          ]"
           alt="头部立绘"
         />
       </transition>
@@ -57,7 +54,10 @@
         <img
           v-if="characters['R']"
           :src="characters['R']!.sprite"
-          :class="['head-portrait-right character-sprite', { active: characters['R']!.isActive, inactive: !characters['R']!.isActive }]"
+          :class="[
+            'head-portrait-right character-sprite',
+            { active: characters['R']!.isActive, inactive: !characters['R']!.isActive },
+          ]"
           alt="头部立绘"
         />
       </transition>
@@ -119,13 +119,7 @@
 
     <!-- Backlog 剧情回想 -->
     <transition name="fade">
-      <Backlog
-        v-if="showBacklog"
-        :all-messages="allMessagesForBacklog"
-        :current-line-index="currentLineIndex"
-        @back="closeBacklog"
-        @jump-to="jumpToDialogue"
-      />
+      <Backlog v-if="showBacklog" :history="historyLogs" @back="closeBacklog" @jump-to="jumpToDialogue" />
     </transition>
 
     <!-- 音乐设置 -->
@@ -164,7 +158,17 @@ import { storeToRefs } from 'pinia';
 
 // 使用配置 store
 const configStore = useConfigStore();
-const { breathingEffect, keyboardShortcut, fontSize, textSpeed, opacity, fullscreenDblClick, scrollUpLog, dialogueTextColor, characterNameColor } = storeToRefs(configStore);
+const {
+  breathingEffect,
+  keyboardShortcut,
+  fontSize,
+  textSpeed,
+  opacity,
+  fullscreenDblClick,
+  scrollUpLog,
+  dialogueTextColor,
+  characterNameColor,
+} = storeToRefs(configStore);
 
 // 状态定义
 interface Character {
@@ -208,6 +212,14 @@ const isUIHidden = ref(false);
 const allLines = ref<string[]>([]);
 const currentLineIndex = ref(0);
 const isWaitingForClick = ref(false);
+
+// ✨ 历史记录（用于 Backlog）
+interface HistoryLog {
+  lineIndex: number;
+  speaker: string | null;
+  content: string;
+}
+const historyLogs = ref<HistoryLog[]>([]);
 
 // 待执行的动作
 const pendingAction = ref<{ character: string; type: string } | null>(null);
@@ -263,18 +275,7 @@ const showConfigSettings = ref(false);
 // 当前消息ID
 const currentMessageId = ref<number>(-1);
 
-// Backlog 对话数据接口
-interface BacklogDialogue {
-  messageId: number;
-  lineIndex: number;
-  speaker: string | null;
-  content: string;
-  background?: string;
-  characters?: Record<string, Character | undefined>;
-}
-
-// 历史对话数据
-const backlogDialogues = ref<BacklogDialogue[]>([]);
+// Backlog 对话数据接口 (Import from Backlog component or re-define if necessary, but here we just use HistoryLog which is compatible)
 
 // 快进模式状态（用于禁用过渡动画）
 const isFastForwarding = ref(false);
@@ -293,21 +294,6 @@ const initCurrentMessageId = () => {
     console.error('获取当前消息ID失败:', error);
   }
 };
-
-// 获取当前消息用于 Backlog (只显示当前消息,不是所有消息)
-const allMessagesForBacklog = computed(() => {
-  try {
-    if (typeof getChatMessages !== 'undefined' && currentMessageId.value >= 0) {
-      const messages = getChatMessages(currentMessageId.value);
-      console.log('Backlog 获取到的消息:', messages);
-      // 添加 id 字段以供 Backlog 使用
-      return messages ? messages.map((msg: any) => ({ ...msg, id: currentMessageId.value })) : [];
-    }
-  } catch (error) {
-    console.error('获取当前消息失败:', error);
-  }
-  return [];
-});
 
 // 获取角色样式
 const getCharacterStyle = (pos: string) => {
@@ -988,7 +974,14 @@ const processLine = async (line: string, silent = false) => {
       displayedText.value = dialogue.content;
       return true; // 继续下一行
     } else {
-      // 正常模式：使用打字机效果显示对话内容
+      // ✨ 记录到历史记录
+      historyLogs.value.push({
+        lineIndex: currentLineIndex.value, // 使用当前的全局行索引
+        speaker: dialogue.type === 'character' ? (dialogue.characterName ?? null) : null,
+        content: dialogue.content,
+      });
+
+      // 使用打字机效果显示对话内容
       typeWriter(dialogue.content);
       return false; // 停止处理，等待用户点击
     }
@@ -1177,9 +1170,7 @@ const toggleUIHidden = () => {
 // 打开 Backlog
 const openBacklog = () => {
   console.log('打开 Backlog');
-  console.log('当前消息ID:', currentMessageId.value);
-  console.log('当前行索引:', currentLineIndex.value);
-  console.log('可用消息:', allMessagesForBacklog.value);
+  console.log('当前历史记录:', historyLogs.value);
   showBacklog.value = true;
 };
 
@@ -1196,7 +1187,13 @@ const handleWheel = (event: WheelEvent) => {
   }
 
   // 向上滚动：打开 backlog
-  if (scrollUpLog.value && !showBacklog.value && !isUIHidden.value && choices.value.length === 0 && event.deltaY < -50) {
+  if (
+    scrollUpLog.value &&
+    !showBacklog.value &&
+    !isUIHidden.value &&
+    choices.value.length === 0 &&
+    event.deltaY < -50
+  ) {
     event.preventDefault();
     openBacklog();
     return;
@@ -1281,7 +1278,7 @@ const handleTogglePlayPause = () => {
 };
 
 // 回溯到指定对话
-const jumpToDialogue = async (dialogue: BacklogDialogue) => {
+const jumpToDialogue = async (dialogue: HistoryLog) => {
   console.log('跳转到对话:', dialogue);
 
   // 1. 关闭 Backlog
@@ -1293,56 +1290,57 @@ const jumpToDialogue = async (dialogue: BacklogDialogue) => {
   // 3. 完全重置游戏状态（清空背景、BGM、角色、对话等）
   resetGameState();
 
-  // 4. 重新加载消息并快速播放到目标行
+  // 重置历史记录到目标点之前
+  const targetHistoryIndex = historyLogs.value.findIndex(log => log.lineIndex === dialogue.lineIndex);
+  if (targetHistoryIndex !== -1) {
+    // 保留到目标之前的历史记录（不包含目标本身，因为接下来会重新播放它并添加）
+    historyLogs.value = historyLogs.value.slice(0, targetHistoryIndex);
+  } else {
+    // 理论上不应该发生，如果找不到就清空
+    historyLogs.value = [];
+  }
+
+  // 4. 使用当前的 allLines 进行回放
   try {
-    if (typeof getChatMessages !== 'undefined' && currentMessageId.value >= 0) {
-      const messages = getChatMessages(currentMessageId.value);
+    const lines = allLines.value;
+    const targetLineIndex = dialogue.lineIndex;
 
-      if (messages && messages[0]) {
-        // 分解消息为行
-        const lines = messages[0].message
-          .split('\n')
-          .map(l => l.trim())
-          .filter(l => l);
+    console.log('总行数:', lines.length, '目标行:', targetLineIndex);
 
-        console.log('总行数:', lines.length, '目标行:', dialogue.lineIndex);
+    // 5. 快速播放到目标行之前的所有行（设置背景、BGM、角色等）
+    if (targetLineIndex > 0) {
+      console.log('开始快速播放从第 0 行到第', targetLineIndex - 1, '行');
 
-        // 存储所有行
-        allLines.value = lines;
-
-        // 5. 快速播放到目标行之前的所有行（设置背景、BGM、角色等）
-        if (dialogue.lineIndex > 0) {
-          console.log('开始快速播放从第 0 行到第', dialogue.lineIndex - 1, '行');
-
-          for (let i = 0; i < dialogue.lineIndex; i++) {
-            await processLine(lines[i], true); // silent=true 快速执行，无打字机、无动作、无过渡动画
-          }
-
-          console.log('快速播放完成，场景已就位');
-        }
-
-        // 6. 等待一帧，确保所有资源（背景、角色等）都已渲染
-        await nextTick();
-
-        // 7. 关闭快进模式，恢复所有过渡动画
-        isFastForwarding.value = false;
-
-        // 8. 再次等待 DOM 更新，确保 no-transition 类已移除
-        await nextTick();
-
-        // 9. 设置索引为目标行的前一行
-        // 这样 nextLine() 会自增索引到目标行，然后正常播放
-        console.log('准备正常播放目标行:', dialogue.lineIndex);
-        currentLineIndex.value = dialogue.lineIndex - 1;
-
-        // 10. 调用 nextLine()，它会：
-        //     - 自增 currentLineIndex 到 dialogue.lineIndex
-        //     - 正常播放目标行（有打字机效果、有动作、有动画）
-        await nextLine();
-
-        console.log('跳转完成');
+      for (let i = 0; i < targetLineIndex; i++) {
+        // 更新当前行索引，以便 processLine 能正确处理上下文（虽然 silent=true 时可能不依赖索引）
+        currentLineIndex.value = i;
+        await processLine(lines[i], true); // silent=true 快速执行，无打字机、无动作、无过渡动画
       }
+
+      console.log('快速播放完成，场景已就位');
     }
+
+    // 6. 等待一帧，确保所有资源（背景、角色等）都已渲染
+    await nextTick();
+
+    // 7. 关闭快进模式，恢复所有过渡动画
+    isFastForwarding.value = false;
+
+    // 8. 再次等待 DOM 更新，确保 no-transition 类已移除
+    await nextTick();
+
+    // 9. 设置索引为目标行的前一行
+    // 这样 nextLine() 会自增索引到目标行，然后正常播放
+    console.log('准备正常播放目标行:', targetLineIndex);
+    currentLineIndex.value = targetLineIndex - 1;
+
+    // 10. 调用 nextLine()，它会：
+    //     - 自增 currentLineIndex 到 targetLineIndex
+    //     - 正常播放目标行（有打字机效果、有动作、有动画）
+    //     - 并将目标行再次加入 historyLogs
+    await nextLine();
+
+    console.log('跳转完成');
   } catch (error) {
     console.error('跳转失败:', error);
     // 确保出错时也恢复状态
@@ -1350,76 +1348,7 @@ const jumpToDialogue = async (dialogue: BacklogDialogue) => {
   }
 };
 
-// 解析所有历史消息并提取对话
-const parseHistoryDialogues = () => {
-  const dialogues: BacklogDialogue[] = [];
-
-  try {
-    if (typeof getChatMessages !== 'undefined') {
-      const messages = getChatMessages();
-
-      if (messages && messages.length > 0) {
-        messages.forEach((msg, messageId) => {
-          if (!msg || !msg.message) return;
-
-          const lines = msg.message
-            .split('\n')
-            .map(l => l.trim())
-            .filter(l => l);
-          let currentBg = '';
-          let currentChars: Record<string, Character | undefined> = {
-            L: undefined,
-            R: undefined,
-            L1: undefined,
-            L2: undefined,
-            L3: undefined,
-            L4: undefined,
-            L5: undefined,
-          };
-
-          lines.forEach((line, lineIndex) => {
-            // 跟踪背景变化
-            const bg = MessageParser.parseBg(line);
-            if (bg) {
-              currentBg = MessageParser.resolveAssetUrl(bg, 'bg');
-              return;
-            }
-
-            // 解析对话
-            const dialogue = MessageParser.parseDialogue(line);
-            if (dialogue) {
-              // 更新立绘状态
-              if (dialogue.type === 'character' && dialogue.position && dialogue.sprite) {
-                currentChars[dialogue.position] = {
-                  name: dialogue.characterName || '',
-                  sprite: MessageParser.resolveAssetUrl(dialogue.sprite, 'sprite'),
-                  isActive: true,
-                  scale: 1,
-                };
-              }
-
-              // 移除 [action|...] 标记
-              const cleanContent = dialogue.content.replace(/\[action\|[^\]]+\]/g, '').trim();
-
-              dialogues.push({
-                messageId,
-                lineIndex,
-                speaker: dialogue.type === 'character' ? dialogue.characterName : null,
-                content: cleanContent,
-                background: currentBg,
-                characters: { ...currentChars },
-              });
-            }
-          });
-        });
-      }
-    }
-  } catch (error) {
-    console.error('解析历史对话失败:', error);
-  }
-
-  backlogDialogues.value = dialogues;
-};
+// parseHistoryDialogues removed as it is no longer used
 
 // 设置恢复UI的监听器
 const setupRestoreListeners = () => {
@@ -1511,6 +1440,9 @@ const handleMessage = async (message: string) => {
   allLines.value = lines;
   currentLineIndex.value = -1;
 
+  // ✨ 重置历史记录
+  historyLogs.value = [];
+
   // 开始处理第一行
   if (allLines.value.length > 0) {
     await nextLine();
@@ -1528,7 +1460,9 @@ const checkShouldPlayBgm = (): boolean => {
     // 只有当距离超过1层时才停止播放
     // 允许范围: currentMessageId >= latestMessageId - 1
     if (currentMessageId.value < latestMessageId - 1) {
-      console.log(`[BGM 播放检查] 当前实例 (${currentMessageId.value}) 距离最新楼层 (${latestMessageId}) 超过1层，不播放`);
+      console.log(
+        `[BGM 播放检查] 当前实例 (${currentMessageId.value}) 距离最新楼层 (${latestMessageId}) 超过1层，不播放`,
+      );
       return false;
     }
 
@@ -1568,7 +1502,9 @@ const calculateCharacterStyles = () => {
     maxWidth = 250 - 50 * ratio; // 250 到 200 之间
   }
 
-  console.log(`更新立绘参数: 宽度=${width}px, 全屏=${isFullscreen.value}, translateY=${translateY}%, maxWidth=${maxWidth}%`);
+  console.log(
+    `更新立绘参数: 宽度=${width}px, 全屏=${isFullscreen.value}, translateY=${translateY}%, maxWidth=${maxWidth}%`,
+  );
   document.documentElement.style.setProperty('--character-translateY', `${translateY}%`);
   document.documentElement.style.setProperty('--character-maxWidth', `${maxWidth}%`);
 };
@@ -1645,12 +1581,12 @@ onMounted(() => {
           // 步骤 2: 应用用户自定义正则（去掉"一丝"等）
           processedMessage = formatAsTavernRegexedString(
             processedMessage,
-            'ai_output',  // 消息来源类型（AI输出）
-            'display',    // 目标用途（用于显示）
+            'ai_output', // 消息来源类型（AI输出）
+            'display', // 目标用途（用于显示）
             {
-              depth: 0,   // 当前消息深度为0
-              character_name: substitudeMacros('{{char}}')  // 当前角色名
-            }
+              depth: 0, // 当前消息深度为0
+              character_name: substitudeMacros('{{char}}'), // 当前角色名
+            },
           );
           console.log('正则处理后:', processedMessage);
 
@@ -2083,7 +2019,7 @@ onUnmounted(() => {
   max-height: 100%;
   aspect-ratio: 1 / 1; // 1024*1024 的头部立绘
   object-fit: contain;
-  transform: scale(0.9);   // 或者用 transform 来缩放（0-1之间）
+  transform: scale(0.9); // 或者用 transform 来缩放（0-1之间）
   transition:
     filter 0.3s ease,
     transform 0.3s ease;
@@ -2117,7 +2053,7 @@ onUnmounted(() => {
   max-height: 100%;
   aspect-ratio: 1 / 1; // 1024*1024 的头部立绘
   object-fit: contain;
-  transform: scale(0.9);   // 或者用 transform 来缩放（0-1之间）
+  transform: scale(0.9); // 或者用 transform 来缩放（0-1之间）
   transition:
     filter 0.3s ease,
     transform 0.3s ease;
